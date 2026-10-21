@@ -11,9 +11,7 @@ const FEATURES = [
 ];
 
 export default function Login() {
-  const { login, register } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [name, setName] = useState('');
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,8 +22,7 @@ export default function Login() {
     setBusy(true);
     setError('');
     try {
-      if (mode === 'login') await login(email, password);
-      else await register(name, email, password);
+      await login(email, password);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -55,28 +52,10 @@ export default function Login() {
 
       <section className="flex flex-1 items-start justify-center px-[max(1.25rem,env(safe-area-inset-left))] py-8 pb-[max(2rem,env(safe-area-inset-bottom))] md:items-center">
         <form onSubmit={submit} className="w-full max-w-sm space-y-4">
-          <div className="grid grid-cols-2 rounded-xl bg-[#e6f2ec] p-1 text-sm font-semibold">
-            {(['login', 'register'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setMode(m);
-                  setError('');
-                }}
-                className={`min-h-11 rounded-lg transition ${mode === m ? 'bg-white text-brand-dark shadow' : 'text-[#5b7068]'}`}
-              >
-                {m === 'login' ? 'Entrar' : 'Criar conta'}
-              </button>
-            ))}
+          <div>
+            <h2 className="text-xl font-bold">Entrar</h2>
+            <p className="text-sm text-[#5b7068]">Acesso criado pelo administrador do app.</p>
           </div>
-
-          {mode === 'register' && (
-            <div>
-              <label className="label" htmlFor="name">Nome</label>
-              <input id="name" className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
-            </div>
-          )}
           <div>
             <label className="label" htmlFor="email">E-mail</label>
             <input id="email" type="email" inputMode="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
@@ -89,15 +68,13 @@ export default function Login() {
               className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              minLength={mode === 'register' ? 8 : undefined}
+              autoComplete="current-password"
               required
             />
-            {mode === 'register' && <p className="mt-1 text-xs text-[#5b7068]">Mínimo de 8 caracteres.</p>}
           </div>
           <ErrorBox message={error} />
           <button className="btn-primary w-full" disabled={busy}>
-            {busy ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Criar conta'}
+            {busy ? 'Aguarde…' : 'Entrar'}
           </button>
         </form>
       </section>
