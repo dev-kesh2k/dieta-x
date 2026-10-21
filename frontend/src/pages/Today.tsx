@@ -1,0 +1,145 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronRight, Flame, Plus, Scale, TrendingDown, UserCog } from 'lucide-react';
+import { useApi, type Summary } from '../api';
+import { useAuth } from '../auth';
+import { Bar, ErrorBox, Loading, PageHeader, Ring } from '../ui';
+import { WaterCard, WeighSheet } from '../widgets';
+import { dateFull, dateLong, kg, n0, n1, signedKg, todayKey } from '../util';
+
+export default function Today() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const day = todayKey();
+  const { data, error, loading, reload } = useApi<Summary>(`/summary?day=${day}`);
+  const [weigh, setWeigh] = useState(false);
+
+  const firstName = user?.name.split(' ')[0] ?? '';
+  const header = <PageHeader title={`Olá, ${firstName}!`} subtitle={<span className="inline-block first-letter:uppercase">{dateLong(day)}</span>} />;
+  if (!data) return <>{header}{loading ? <Loading /> : <ErrorBox message={error} onRetry={reload} />}</>;
+
+  const { report: r, totals } = data;
+  const goal = r.calorieGoal;
+  const left = goal != null ? goal - totals.kcal : null;
+  // Metas de macros a partir da meta calórica: 30% proteína, 45% carboidrato, 25% gordura.
+  const macros = [
+    { label: 'Proteína', value: totals.proteinG, goal: goal ? (goal * 0.3) / 4 : null, color: 'bg-rose-400' },
+    { label: 'Carboidrato', value: totals.carbsG, goal: goal ? (goal * 0.45) / 4 : null, color: 'bg-amber-400' },
+    { label: 'Gordura', value: totals.fatG, goal: goal ? (goal * 0.25) / 9 : null, color: 'bg-violet-400' },
+  ];
+
+  return (
+    <>
+      {header}
+      <div className="space-y-4">
+        {r.missing.length > 0 && (
+          <Link to="/perfil" className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <UserCog size={20} className="shrink-0" />
+            <span className="min-w-0 flex-1">Complete seu perfil ({r.missing.join(', ')}) para calcular IMC, gasto diário e meta de calorias.</span>
+            <ChevronRight size={18} className="shrink-0" />
+          </Link>
+        )}
+        {r.weighDue && (
+          <button onClick={() => setWeigh(true)} className="flex w-full items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-left text-sm text-sky-900">
+            <Scale size={20} className="shrink-0" />
+            <span className="min-w-0 flex-1">
+              {r.lastWeighDay ? `Sua última pesagem foi há ${r.daysSinceWeigh} dias. Hora da pesagem semanal!` : 'Registre seu peso para começar a acompanhar a evolução.'}
+            </span>
+            <ChevronRight size={18} className="shrink-0" />
+          </button>
+        )}
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <section className="card">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 font-bold">
+                <Flame size={18} className="text-orange-500" /> Calorias de hoje
+              </h2>
+              {data.streak > 1 && <span className="shrink-0 whitespace-nowrap rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700">{data.streak} dias seguidos</span>}
+            </div>
+            <div className="mt-4 flex flex-col items-center gap-5 min-[380px]:flex-row">
+              <Ring value={goal ? totals.kcal / goal : 0} size={136}>
+                <span className="text-2xl font-bold">{n0(totals.kcal)}</span>
+                <span className="text-xs text-[#5b7068]">{goal ? `de ${n0(goal)} kcal` : 'kcal'}</span>
+              </Ring>
+              <div className="w-full min-w-0 flex-1 space-y-3">
+                {left != null && (
+                  <p className={`text-sm font-semibold ${left >= 0 ? 'text-brand-dark' : 'text-red-600'}`}>
+                    {left >= 0 ? `Restam ${n0(left)} kcal` : `${n0(-left)} kcal acima da meta`}
+                  </p>
+                )}
+                {macros.map((m) => (
+                  <div key={m.label}>
+                    <div className="mb-1 flex justify-between gap-2 text-xs">
+                      <span className="font-semibold text-[#3d524a]">{m.label}</span>
+                      <span className="text-[#5b7068]">
+                        {n1(m.value)}
+                        {m.goal ? ` / ${n0(m.goal)}` : ''} g
+                      </span>
+                    </div>
+                    <Bar value={m.goal ? m.value / m.goal : 0} color={m.color} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button className="btn-primary mt-4 w-full" onClick={() => navigate('/refeicoes?novo=1')}>
+              <Plus size={18} /> Adicionar refeição
+            </button>
+            <p className="mt-2 text-center text-xs text-[#5b7068]">
+              {data.meals ? `${data.meals} refeição(ões) registrada(s) hoje · ` : ''}
+              <Link to="/refeicoes" className="font-semibold text-brand-dark underline">ver refeições</Link>
+            </p>
+          </section>
+
+          <WaterCard day={day} goalMl={r.waterGoalMl} onChange={reload} />
+        </div>
+
+        <section className="card">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-bold">
+              <Scale size={18} className="text-brand" /> Corpo
+            </h2>
+            <button className="btn-ghost !min-h-9 !py-1.5 !text-xs" onClick={() => setWeigh(true)}>Registrar peso</button>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Info label="Peso atual" value={r.weightKg != null ? kg(r.weightKg) : '—'} hint={r.lastWeighDay ? `em ${dateFull(r.lastWeighDay)}` : 'sem pesagem'} />
+            <Info label="IMC hoje" value={r.bmi != null ? n1(r.bmi) : '—'} hint={r.bmiClass ?? 'informe altura e peso'} />
+            <Info label="Meta de peso" value={r.goal ? kg(r.goal.weightKg) : '—'} hint={r.goal ? (r.goal.remaining > 0 ? `faltam ${kg(r.goal.remaining)}` : r.goal.remaining < 0 ? `faltam ${kg(-r.goal.remaining)} a ganhar` : 'meta atingida!') : 'defina no perfil'} />
+            <Info label="Progresso" value={r.goal ? `${r.goal.pct}%` : '—'} hint={r.goal ? `início: ${kg(r.goal.startKg)}` : ''} />
+          </div>
+          {r.goal && (
+            <div className="mt-3">
+              <Bar value={r.goal.pct / 100} />
+            </div>
+          )}
+        </section>
+
+        <Link to="/progresso" className="card flex items-center gap-3 transition hover:border-brand">
+          <TrendingDown size={22} className="shrink-0 text-brand" />
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="font-bold">Semana</p>
+            <p className="text-[#5b7068]">
+              {r.week.lostKg != null ? (r.week.lostKg >= 0 ? `Perdeu ${kg(r.week.lostKg)}` : `Ganhou ${kg(-r.week.lostKg)}`) : 'Sem pesagens para comparar'}
+              {' · '}
+              {r.week.avgKcal != null ? `média ${n0(r.week.avgKcal)} kcal/dia` : 'sem refeições na semana'}
+              {r.forecast ? ` · previsão ${signedKg(r.forecast.change)}` : ''}
+            </p>
+          </div>
+          <ChevronRight size={18} className="shrink-0 text-[#8a9a93]" />
+        </Link>
+
+      </div>
+      <WeighSheet open={weigh} onClose={() => setWeigh(false)} onSaved={reload} lastKg={r.weightKg} />
+    </>
+  );
+}
+
+function Info({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="min-w-0 rounded-xl bg-[#f3faf7] p-3">
+      <p className="text-xs font-semibold text-[#5b7068]">{label}</p>
+      <p className="mt-0.5 truncate text-lg font-bold">{value}</p>
+      {hint && <p className="truncate text-xs text-[#5b7068]">{hint}</p>}
+    </div>
+  );
+}
