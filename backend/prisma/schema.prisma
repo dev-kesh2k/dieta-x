@@ -1,0 +1,75 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  passwordHash  String
+  role          String        @default("member")
+  sex           String        @default("")
+  birthDate     String?
+  heightCm      Float?
+  goalWeightKg  Float?
+  activity      String        @default("leve")
+  calorieGoal   Int?
+  waterGoalMl   Int           @default(2500)
+  createdAt     DateTime      @default(now())
+  meals         Meal[]
+  weights       WeightEntry[]
+  waters        WaterEntry[]
+}
+
+model Meal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day         String
+  type        String
+  description String
+  kcal        Int
+  proteinG    Float    @default(0)
+  carbsG      Float    @default(0)
+  fatG        Float    @default(0)
+  items       Json     @default("[]")
+  source      String   @default("manual")
+  createdAt   DateTime @default(now())
+
+  @@index([userId, day])
+}
+
+model WeightEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       String
+  weightKg  Float
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, day])
+}
+
+model WaterEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       String
+  ml        Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, day])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

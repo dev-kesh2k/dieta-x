@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+  background: #f3faf7;
+  color: #0f2a22;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-[#e3efe9] bg-white p-4 shadow-[0_2px_10px_rgba(15,42,34,0.04)] sm:p-5;
+  }
+  .btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(5,150,105,0.3)] transition hover:bg-brand-dark active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-light px-4 py-2.5 text-sm font-semibold text-brand-dark transition active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-icon {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5b7068] transition hover:bg-[#eef6f2] active:scale-95;
+  }
+  .input {
+    @apply min-h-11 w-full min-w-0 rounded-xl border border-[#d9e8e1] bg-[#f8fcfa] px-3.5 py-2.5 text-base outline-none transition focus:border-brand focus:bg-white;
+  }
+  .label {
+    @apply mb-1 block text-xs font-semibold text-[#5b7068];
+  }
+}
