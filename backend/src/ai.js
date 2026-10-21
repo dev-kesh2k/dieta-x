@@ -59,7 +59,7 @@ Se o texto não descrever comida ou bebida, devolva "items" vazio e explique em 
 /** Pede ao Claude a estimativa nutricional da refeição descrita. */
 export async function estimateMeal(description) {
   const { apiKey, model } = await aiConfig();
-  if (!apiKey) throw new HttpError(503, 'A IA ainda não está configurada. Peça ao administrador para cadastrar a chave da API Anthropic em Perfil → Inteligência artificial, ou informe as calorias manualmente.');
+  if (!apiKey) throw new HttpError(503, 'A IA ainda não está configurada. Peça ao administrador para cadastrar a chave da API Anthropic em Admin → Inteligência artificial, ou informe as calorias manualmente.');
   const client = new Anthropic({ apiKey, timeout: 90_000, maxRetries: 1 });
   let response;
   try {
@@ -117,7 +117,7 @@ export async function testAi({ apiKey, model }) {
 }
 
 function aiError(err) {
-  if (err instanceof Anthropic.AuthenticationError) return new HttpError(400, 'Chave da API Anthropic inválida. Confira em Perfil → Inteligência artificial.');
+  if (err instanceof Anthropic.AuthenticationError) return new HttpError(400, 'Chave da API Anthropic inválida. Confira em Admin → Inteligência artificial.');
   if (err instanceof Anthropic.PermissionDeniedError) return new HttpError(400, 'A chave não tem permissão para usar este modelo.');
   if (err instanceof Anthropic.NotFoundError) return new HttpError(400, 'Modelo não encontrado para esta chave.');
   if (err instanceof Anthropic.RateLimitError) return new HttpError(429, 'Limite de uso da IA atingido. Tente de novo em instantes.');

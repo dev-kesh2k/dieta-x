@@ -6,6 +6,7 @@ import Today from './pages/Today';
 import Meals from './pages/Meals';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
+import Admin from './pages/Admin';
 
 export default function App() {
   const { user, ready } = useAuth();
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/refeicoes" element={<Meals />} />
             <Route path="/progresso" element={<Progress />} />
             <Route path="/perfil" element={<Profile />} />
+            <Route path="/admin" element={<Admin />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </>

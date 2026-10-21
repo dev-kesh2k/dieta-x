@@ -42,18 +42,6 @@ function checkRate(key) {
   return a;
 }
 
-api.post('/auth/register', wrap(async (req, res) => {
-  const name = str(req.body?.name, 80);
-  const email = str(req.body?.email, 160).toLowerCase();
-  const password = String(req.body?.password ?? '');
-  if (name.length < 2) throw new HttpError(400, 'Informe seu nome');
-  if (!EMAIL_RE.test(email)) throw new HttpError(400, 'E-mail inválido');
-  if (password.length < 8) throw new HttpError(400, 'A senha precisa ter pelo menos 8 caracteres');
-  if (await prisma.user.findUnique({ where: { email } })) throw new HttpError(409, 'Este e-mail já está cadastrado');
-  const user = await prisma.user.create({ data: { name, email, passwordHash: await bcrypt.hash(password, 10) } });
-  res.status(201).json({ token: signToken(user), user: publicUser(user) });
-}));
-
 api.post('/auth/login', wrap(async (req, res) => {
   const email = str(req.body?.email, 160).toLowerCase();
   const password = String(req.body?.password ?? '');
@@ -290,6 +278,79 @@ api.post('/weights', wrap(async (req, res) => {
 api.delete('/weights/:id', wrap(async (req, res) => {
   const { count } = await prisma.weightEntry.deleteMany({ where: { id: String(req.params.id), userId: req.user.id } });
   if (!count) throw new HttpError(404, 'Pesagem não encontrada');
+  res.json({ ok: true });
+}));
+
+// ---------- Usuários (admin) ----------
+api.get('/admin/users', requireAdmin, wrap(async (_req, res) => {
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: 'asc' },
+    include: { _count: { select: { meals: true, weights: true } }, weights: { orderBy: { day: 'desc' }, take: 1 } },
+  });
+  const lastMeals = await prisma.meal.groupBy({ by: ['userId'], _max: { day: true } });
+  const lastMeal = Object.fromEntries(lastMeals.map((m) => [m.userId, m._max.day]));
+  res.json({
+    users: users.map(({ _count, weights, ...u }) => ({
+      ...publicUser(u),
+      meals: _count.meals,
+      weighings: _count.weights,
+      lastWeightKg: weights[0]?.weightKg ?? null,
+      lastMealDay: lastMeal[u.id] ?? null,
+    })),
+  });
+}));
+
+function userInput(b, { creating }) {
+  const data = {};
+  if (creating || b.name !== undefined) {
+    data.name = str(b.name, 80);
+    if (data.name.length < 2) throw new HttpError(400, 'Informe o nome');
+  }
+  if (creating || b.email !== undefined) {
+    data.email = str(b.email, 160).toLowerCase();
+    if (!EMAIL_RE.test(data.email)) throw new HttpError(400, 'E-mail inválido');
+  }
+  if (b.role !== undefined) {
+    if (!['admin', 'member'].includes(b.role)) throw new HttpError(400, 'Perfil de acesso inválido');
+    data.role = b.role;
+  }
+  const password = String(b.password ?? '');
+  if (creating || password) {
+    if (password.length < 8) throw new HttpError(400, 'A senha precisa ter pelo menos 8 caracteres');
+    data.password = password;
+  }
+  return data;
+}
+
+api.post('/admin/users', requireAdmin, wrap(async (req, res) => {
+  const { password, ...data } = userInput(req.body || {}, { creating: true });
+  if (await prisma.user.findUnique({ where: { email: data.email } })) throw new HttpError(409, 'Este e-mail já está cadastrado');
+  const user = await prisma.user.create({ data: { ...data, passwordHash: await bcrypt.hash(password, 10) } });
+  res.status(201).json({ user: publicUser(user) });
+}));
+
+api.put('/admin/users/:id', requireAdmin, wrap(async (req, res) => {
+  const target = await prisma.user.findUnique({ where: { id: String(req.params.id) } });
+  if (!target) throw new HttpError(404, 'Usuário não encontrado');
+  const { password, ...data } = userInput(req.body || {}, { creating: false });
+  if (data.email && data.email !== target.email && (await prisma.user.findUnique({ where: { email: data.email } }))) {
+    throw new HttpError(409, 'Este e-mail já está em uso');
+  }
+  if (data.role === 'member' && target.role === 'admin') {
+    if (target.id === req.user.id) throw new HttpError(400, 'Você não pode remover o seu próprio acesso de administrador');
+    if ((await prisma.user.count({ where: { role: 'admin' } })) <= 1) throw new HttpError(400, 'É preciso manter pelo menos um administrador');
+  }
+  if (password) data.passwordHash = await bcrypt.hash(password, 10);
+  const user = await prisma.user.update({ where: { id: target.id }, data });
+  res.json({ user: publicUser(user) });
+}));
+
+api.delete('/admin/users/:id', requireAdmin, wrap(async (req, res) => {
+  const target = await prisma.user.findUnique({ where: { id: String(req.params.id) } });
+  if (!target) throw new HttpError(404, 'Usuário não encontrado');
+  if (target.id === req.user.id) throw new HttpError(400, 'Você não pode excluir a sua própria conta');
+  if (target.role === 'admin' && (await prisma.user.count({ where: { role: 'admin' } })) <= 1) throw new HttpError(400, 'É preciso manter pelo menos um administrador');
+  await prisma.user.delete({ where: { id: target.id } });
   res.json({ ok: true });
 }));
 

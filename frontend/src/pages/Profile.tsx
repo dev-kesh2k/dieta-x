@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { CheckCircle2, KeyRound, LogOut, Sparkles } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { CheckCircle2, KeyRound, LogOut } from 'lucide-react';
 import { api, useApi, type Summary, type User } from '../api';
 import { useAuth } from '../auth';
 import { ErrorBox, PageHeader } from '../ui';
@@ -16,7 +16,6 @@ export default function Profile() {
           <PersonalForm user={user} />
         </div>
         <div className="space-y-4">
-          {user.role === 'admin' && <AiConfig />}
           <PasswordForm />
           <button className="btn-ghost w-full !bg-red-50 !text-red-700" onClick={logout}>
             <LogOut size={18} /> Sair
@@ -211,92 +210,5 @@ function PasswordForm() {
       {msg && <p className="text-sm text-brand-dark">{msg}</p>}
       <button className="btn-ghost w-full" disabled={busy}>{busy ? 'Salvando…' : 'Alterar senha'}</button>
     </form>
-  );
-}
-
-interface AiCfg {
-  configured: boolean;
-  keyPreview: string;
-  source: 'app' | 'env' | 'none';
-  model: string;
-  models: string[];
-}
-
-const MODEL_LABEL: Record<string, string> = {
-  'claude-opus-5-5': 'Opus 5.5 (mais preciso)',
-  'claude-sonnet-5-5': 'Sonnet 5.5 (equilibrado)',
-  'claude-haiku-4-5': 'Haiku 4.5 (mais barato)',
-};
-
-function AiConfig() {
-  const { data, reload } = useApi<AiCfg>('/ai/config');
-  const [key, setKey] = useState('');
-  const [model, setModel] = useState('');
-  const [msg, setMsg] = useState('');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (data) setModel(data.model);
-  }, [data]);
-
-  const run = async (fn: () => Promise<unknown>, ok: string) => {
-    setBusy(true);
-    setError('');
-    setMsg('');
-    try {
-      await fn();
-      setMsg(ok);
-      setKey('');
-      reload();
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <section className="card space-y-3">
-      <h2 className="flex items-center gap-2 font-bold">
-        <Sparkles size={18} className="text-violet-600" /> Inteligência artificial
-      </h2>
-      <p className="text-xs text-[#5b7068]">
-        O cálculo de calorias usa o Claude (Anthropic). Crie uma chave em <b>console.anthropic.com</b> → API Keys e cole abaixo. Ela fica salva só no banco deste app e vale para todos os usuários.
-      </p>
-      <p className={`rounded-xl p-2.5 text-sm font-semibold ${data?.configured ? 'bg-brand-light text-brand-dark' : 'bg-amber-50 text-amber-900'}`}>
-        {data ? (data.configured ? `Ativa · chave ${data.keyPreview}${data.source === 'env' ? ' (do servidor)' : ''}` : 'Sem chave cadastrada') : 'Carregando…'}
-      </p>
-      <form
-        className="space-y-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          run(() => api.put('/ai/config', { apiKey: key.trim(), model }), 'Chave validada e salva.');
-        }}
-      >
-        <input className="input font-mono" placeholder="sk-ant-…" value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off" aria-label="Chave da API Anthropic" />
-        <select className="input" value={model} onChange={(e) => setModel(e.target.value)} aria-label="Modelo">
-          {(data?.models ?? []).map((m) => (
-            <option key={m} value={m}>{MODEL_LABEL[m] ?? m}</option>
-          ))}
-        </select>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <button className="btn-primary" disabled={busy || !key.trim()}>Salvar chave</button>
-          <button type="button" className="btn-ghost" disabled={busy || !data || model === data.model} onClick={() => run(() => api.put('/ai/config', { model }), 'Modelo atualizado.')}>
-            Salvar só o modelo
-          </button>
-          <button type="button" className="btn-ghost" disabled={busy || !data?.configured} onClick={() => run(() => api.post('/ai/test'), 'Conexão com o Claude OK.')}>
-            Testar conexão
-          </button>
-          {data?.source === 'app' && (
-            <button type="button" className="btn-ghost !bg-red-50 !text-red-700" disabled={busy} onClick={() => confirm('Remover a chave da IA?') && run(() => api.put('/ai/config', { apiKey: '' }), 'Chave removida.')}>
-              Remover chave
-            </button>
-          )}
-        </div>
-      </form>
-      <ErrorBox message={error} />
-      {msg && <p className="text-sm text-brand-dark">{msg}</p>}
-    </section>
   );
 }

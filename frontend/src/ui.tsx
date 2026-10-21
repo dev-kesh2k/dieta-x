@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { AlertCircle, Home, LineChart, Loader2, User, Utensils, X } from 'lucide-react';
+import { AlertCircle, Home, LineChart, Loader2, Shield, User, Utensils, X } from 'lucide-react';
+import { useAuth } from './auth';
 
 const NAV = [
   { to: '/', label: 'Hoje', icon: Home, end: true },
@@ -8,6 +9,7 @@ const NAV = [
   { to: '/progresso', label: 'Progresso', icon: LineChart, end: false },
   { to: '/perfil', label: 'Perfil', icon: User, end: false },
 ];
+const ADMIN_NAV = { to: '/admin', label: 'Admin', icon: Shield, end: false };
 
 export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
   return <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className={`${className} shrink-0 rounded-xl`} />;
@@ -15,6 +17,8 @@ export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
 
 /** Menu lateral no desktop, barra inferior no celular. */
 export function AppLayout() {
+  const { user } = useAuth();
+  const nav = user?.role === 'admin' ? [...NAV, ADMIN_NAV] : NAV;
   return (
     <div className="min-h-[100dvh] md:flex">
       <aside className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col border-r border-[#e3efe9] bg-white px-4 py-6 md:flex">
@@ -23,7 +27,7 @@ export function AppLayout() {
           <span className="text-lg font-bold">Dieta X</span>
         </div>
         <nav className="flex flex-col gap-1">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -48,14 +52,14 @@ export function AppLayout() {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e3efe9] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <div className="grid grid-cols-4">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+        <div className={`grid ${nav.length > 4 ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex min-h-[3.75rem] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
+                `flex min-h-[3.75rem] min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold min-[360px]:text-[11px] ${
                   isActive ? 'text-brand' : 'text-[#8a9a93]'
                 }`
               }

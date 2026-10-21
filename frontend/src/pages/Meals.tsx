@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, History, Loader2, Pencil, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
 import { api, useApi, type Estimate, type Meal, type MealItem } from '../api';
 import { useAuth } from '../auth';
@@ -113,7 +113,7 @@ export default function Meals() {
       {ai.data && !ai.data.configured && (
         <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           O cálculo automático por IA ainda não está ativo. Cadastre a chave da API Anthropic em{' '}
-          <Link to="/perfil" className="font-semibold underline">Perfil → Inteligência artificial</Link> (administrador). Enquanto isso, informe as calorias manualmente.
+          <b>Admin → Inteligência artificial</b> (administrador). Enquanto isso, informe as calorias manualmente.
         </div>
       )}
 
@@ -293,7 +293,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
           </button>
         ) : (
           <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-            IA não configurada{user?.role === 'admin' ? ' — cadastre a chave em Perfil → Inteligência artificial' : ''}. Informe as calorias abaixo.
+            IA não configurada{user?.role === 'admin' ? ' — cadastre a chave em Admin → Inteligência artificial' : ''}. Informe as calorias abaixo.
           </p>
         )}
         {stale && <p className="text-xs font-semibold text-amber-700">A descrição mudou depois do cálculo. Recalcule para atualizar os valores.</p>}
