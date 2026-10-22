@@ -1,0 +1,30 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dieta-x
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, hub]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      # O Hub publica a partir da pasta do projeto no Criador de apps.
+      - name: Sincronizar código com o Hub
+        run: |
+          rsync -a --delete --exclude '.git' --exclude 'node_modules' --exclude 'dist' \
+            ./ /mnt/c/Hub/VPS-main/data/app-builder/projetos/dieta-x/
+
+      - name: Publicar no Hub
+        env:
+          HUB_DEPLOY_TOKEN: ${{ secrets.HUB_DEPLOY_TOKEN }}
+        run: |
+          curl -fsS -X POST -H "x-deploy-token: $HUB_DEPLOY_TOKEN" \
+            http://127.0.0.1:3001/api/aplicacoes/deploy-hook/dieta-x
