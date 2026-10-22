@@ -57,8 +57,8 @@ export default function Login() {
             <p className="text-sm text-[#5b7068]">Acesso criado pelo administrador do app.</p>
           </div>
           <div>
-            <label className="label" htmlFor="email">E-mail</label>
-            <input id="email" type="email" inputMode="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+            <label className="label" htmlFor="email">Usuário</label>
+            <input id="email" type="text" autoCapitalize="none" autoCorrect="off" className="input" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" required />
           </div>
           <div>
             <label className="label" htmlFor="password">Senha</label>

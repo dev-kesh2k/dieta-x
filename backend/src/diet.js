@@ -37,9 +37,25 @@ export function energy(user, weightKg, day = dayKey()) {
   const bmr = Math.round(10 * weightKg + 6.25 * user.heightCm - 5 * age + sexAdj);
   const tdee = Math.round(bmr * (ACTIVITY[user.activity] || ACTIVITY.leve));
   let suggested = tdee;
-  if (user.goalWeightKg && user.goalWeightKg < weightKg - 0.5) suggested = Math.max(tdee - 500, user.sex === 'M' ? 1500 : 1200);
-  else if (user.goalWeightKg && user.goalWeightKg > weightKg + 0.5) suggested = tdee + 300;
-  return { bmr, tdee, suggested };
+  let goalCalories = null;
+
+  if (user.goalWeightKg) {
+    const diff = weightKg - user.goalWeightKg;
+    if (diff > 0.5) {
+      // Emagrecer: déficit moderado de 500 kcal/dia (0,5 kg/semana)
+      suggested = Math.max(tdee - 500, user.sex === 'M' ? 1500 : 1200);
+      goalCalories = suggested;
+    } else if (diff < -0.5) {
+      // Ganhar: superávit de 300 kcal/dia (0,3 kg/semana)
+      suggested = tdee + 300;
+      goalCalories = suggested;
+    } else {
+      // Meta atingida: manter o TDEE
+      goalCalories = tdee;
+    }
+  }
+
+  return { bmr, tdee, suggested, goalCalories };
 }
 
 /** Último peso registrado até o dia (pesos ordenados por dia crescente). */
@@ -135,6 +151,7 @@ export function report(user, weights, kcalByDay, today = dayKey()) {
     bmr: en?.bmr ?? null,
     tdee: en?.tdee ?? null,
     suggestedCalories: en?.suggested ?? null,
+    goalCalories: en?.goalCalories ?? null,
     calorieGoal,
     waterGoalMl: user.waterGoalMl,
     week: { refDay: ref && latest && ref.id !== latest.id ? ref.day : null, lostKg: lostLastWeek, avgKcal, daysLogged: logged.length },

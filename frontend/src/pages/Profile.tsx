@@ -41,6 +41,7 @@ function PersonalForm({ user }: { user: User }) {
     autoCalories: user.calorieGoal == null,
     calorieGoal: str(user.calorieGoal),
     waterGoalMl: String(user.waterGoalMl),
+    shareRanking: user.shareRanking,
   });
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -66,6 +67,7 @@ function PersonalForm({ user }: { user: User }) {
         activity: f.activity,
         calorieGoal: f.autoCalories ? null : parseNum(f.calorieGoal),
         waterGoalMl: parseNum(f.waterGoalMl),
+        shareRanking: f.shareRanking,
       });
       setUser(u);
       setSaved(true);
@@ -142,7 +144,7 @@ function PersonalForm({ user }: { user: User }) {
         </div>
         <p className="mt-1 text-xs text-[#5b7068]">
           {r?.tdee
-            ? `Metabolismo basal ${n0(r.bmr!)} kcal · gasto diário ≈ ${n0(r.tdee)} kcal · sugerido para sua meta: ${n0(r.suggestedCalories!)} kcal/dia.`
+            ? `Metabolismo basal ${n0(r.bmr!)} kcal · gasto diário ≈ ${n0(r.tdee)} kcal${r.goalCalories ? ` · meta para ${r.goalCalories > r.tdee! ? 'ganhar' : 'emagrecer'}: ${n0(r.goalCalories)} kcal/dia` : ''}.`
             : 'Preencha sexo, nascimento, altura e registre o peso para calcularmos a meta.'}
         </p>
         {!f.autoCalories && (
@@ -164,6 +166,23 @@ function PersonalForm({ user }: { user: User }) {
             </button>
           </p>
         )}
+      </div>
+
+      <div className="rounded-xl border border-[#e3efe9] p-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold">Compartilhar no ranking</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={f.shareRanking}
+            aria-label="Compartilhar no ranking"
+            onClick={() => set({ shareRanking: !f.shareRanking })}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${f.shareRanking ? 'bg-brand' : 'bg-[#cfdcd6]'}`}
+          >
+            <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${f.shareRanking ? 'left-[1.375rem]' : 'left-0.5'}`} />
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-[#5b7068]">Mostra seu nome, calorias, metas e resultados dos últimos 7 dias aos outros usuários. O peso em kg não é exibido.</p>
       </div>
 
       <ErrorBox message={error} />

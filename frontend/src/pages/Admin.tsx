@@ -142,8 +142,8 @@ function UserSheet({ form, meId, onClose, onSaved }: { form: Form | null; meId: 
           <input id="u-name" className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} required />
         </div>
         <div>
-          <label className="label" htmlFor="u-email">E-mail (login)</label>
-          <input id="u-email" type="email" inputMode="email" autoComplete="off" className="input" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required />
+          <label className="label" htmlFor="u-email">Usuário (login)</label>
+          <input id="u-email" type="text" autoCapitalize="none" autoComplete="off" className="input" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required />
         </div>
         <div>
           <label className="label" htmlFor="u-pass">{f.id ? 'Nova senha (deixe vazio para manter)' : 'Senha'}</label>

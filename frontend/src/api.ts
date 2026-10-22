@@ -87,6 +87,7 @@ export interface User {
   activity: string;
   calorieGoal: number | null;
   waterGoalMl: number;
+  shareRanking: boolean;
   createdAt: string;
 }
 
@@ -135,6 +136,7 @@ export interface Report {
   bmr: number | null;
   tdee: number | null;
   suggestedCalories: number | null;
+  goalCalories: number | null;
   calorieGoal: number | null;
   waterGoalMl: number;
   week: { refDay: string | null; lostKg: number | null; avgKcal: number | null; daysLogged: number };
@@ -170,4 +172,27 @@ export interface WaterEntry {
   id: string;
   ml: number;
   createdAt: string;
+}
+
+export interface RankingEntry {
+  id: string;
+  name: string;
+  isMe: boolean;
+  calorieGoal: number | null;
+  todayKcal: number;
+  avgKcal: number | null;
+  daysLogged: number;
+  daysOnGoal: number;
+  streak: number;
+  waterMl: number;
+  waterGoalMl: number;
+  goalPct: number | null;
+  lostKg30: number | null;
+  daily: number[];
+}
+
+export interface RankingData {
+  days: string[];
+  joined: boolean;
+  entries: RankingEntry[];
 }

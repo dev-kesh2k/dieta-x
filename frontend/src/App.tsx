@@ -4,7 +4,9 @@ import { AppLayout, Logo } from './ui';
 import Login from './pages/Login';
 import Today from './pages/Today';
 import Meals from './pages/Meals';
+import Menu from './pages/Menu';
 import Progress from './pages/Progress';
+import Ranking from './pages/Ranking';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 
@@ -28,7 +30,9 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<Today />} />
             <Route path="/refeicoes" element={<Meals />} />
+            <Route path="/cardapio" element={<Menu />} />
             <Route path="/progresso" element={<Progress />} />
+            <Route path="/ranking" element={<Ranking />} />
             <Route path="/perfil" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
           </Route>
