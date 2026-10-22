@@ -3,13 +3,13 @@ import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, MEAL_TYPES, bmiSeries, report } from './diet.js';
-import { DEFAULT_MODEL, MODELS, aiConfig, estimateMeal, saveModel, testAi } from './ai.js';
+import { DEFAULT_MODEL, MODELS, aiConfig, estimateMeal, generateMenu, MENU_LEVELS, saveModel, testAi } from './ai.js';
 
 export const api = Router();
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const str = (v, max = 120) => String(v ?? '').trim().slice(0, max);
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LOGIN_RE = /^[a-z0-9._@-]{3,160}$/;
 
 /** Número validado; `optional` aceita vazio (null). */
 function num(v, label, min, max, { optional = false, int = false } = {}) {
@@ -52,7 +52,7 @@ api.post('/auth/login', wrap(async (req, res) => {
     a.n += 1;
     if (a.n >= 5) Object.assign(a, { n: 0, until: Date.now() + 5 * 60000 });
     attempts.set(key, a);
-    throw new HttpError(401, 'E-mail ou senha incorretos');
+    throw new HttpError(401, 'Usuário ou senha incorretos');
   }
   attempts.delete(key);
   res.json({ token: signToken(user), user: publicUser(user) });
@@ -72,9 +72,9 @@ api.put('/me', wrap(async (req, res) => {
   }
   if (b.email !== undefined) {
     data.email = str(b.email, 160).toLowerCase();
-    if (!EMAIL_RE.test(data.email)) throw new HttpError(400, 'E-mail inválido');
+    if (!LOGIN_RE.test(data.email)) throw new HttpError(400, 'Usuário inválido (mín. 3 caracteres: letras, números, ponto, hífen ou _)');
     const other = await prisma.user.findUnique({ where: { email: data.email } });
-    if (other && other.id !== req.user.id) throw new HttpError(409, 'Este e-mail já está em uso');
+    if (other && other.id !== req.user.id) throw new HttpError(409, 'Este usuário já está em uso');
   }
   if (b.sex !== undefined) data.sex = ['', 'M', 'F'].includes(b.sex) ? b.sex : '';
   if (b.birthDate !== undefined) {
@@ -93,6 +93,7 @@ api.put('/me', wrap(async (req, res) => {
     data.activity = b.activity;
   }
   if (b.calorieGoal !== undefined) data.calorieGoal = num(b.calorieGoal, 'a meta de calorias', 800, 6000, { optional: true, int: true });
+  if (b.shareRanking !== undefined) data.shareRanking = b.shareRanking === true;
   if (b.waterGoalMl !== undefined) data.waterGoalMl = num(b.waterGoalMl, 'a meta de água (ml)', 500, 8000, { int: true });
   const user = await prisma.user.update({ where: { id: req.user.id }, data });
   res.json({ user: publicUser(user) });
@@ -158,6 +159,53 @@ api.get('/progress', wrap(async (req, res) => {
   });
 }));
 
+// ---------- Ranking ----------
+// Só aparecem usuários que ligaram "Compartilhar no ranking" no perfil. Janela: últimos 7 dias.
+api.get('/ranking', wrap(async (req, res) => {
+  const today = dayKey();
+  const from = addDays(today, -6);
+  const users = await prisma.user.findMany({ where: { shareRanking: true } });
+  const ids = users.map((u) => u.id);
+  const [weights, meals, water] = await Promise.all([
+    prisma.weightEntry.findMany({ where: { userId: { in: ids } }, orderBy: { day: 'asc' } }),
+    prisma.meal.groupBy({ by: ['userId', 'day'], where: { userId: { in: ids }, day: { gte: addDays(today, -29), lte: today } }, _sum: { kcal: true } }),
+    prisma.waterEntry.groupBy({ by: ['userId'], where: { userId: { in: ids }, day: today }, _sum: { ml: true } }),
+  ]);
+  const days = Array.from({ length: 7 }, (_, i) => addDays(from, i));
+  const entries = users.map((u) => {
+    const kcalByDay = {};
+    for (const m of meals) if (m.userId === u.id) kcalByDay[m.day] = m._sum.kcal || 0;
+    const w = weights.filter((x) => x.userId === u.id);
+    const rep = report(u, w, kcalByDay, today);
+    const goal = rep.calorieGoal;
+    const daily = days.map((d) => kcalByDay[d] || 0);
+    // "Na meta": dia registrado com calorias até 10% acima/abaixo da meta.
+    const daysOnGoal = goal ? daily.filter((k) => k > 0 && Math.abs(k - goal) <= goal * 0.1).length : 0;
+    let streak = 0;
+    for (let d = kcalByDay[today] ? today : addDays(today, -1); kcalByDay[d]; d = addDays(d, -1)) streak += 1;
+    const first = w.find((x) => x.day >= addDays(today, -29));
+    const last = w.at(-1);
+    return {
+      id: u.id,
+      name: u.name,
+      isMe: u.id === req.user.id,
+      calorieGoal: goal,
+      todayKcal: kcalByDay[today] || 0,
+      avgKcal: rep.week.avgKcal,
+      daysLogged: rep.week.daysLogged,
+      daysOnGoal,
+      streak,
+      waterMl: water.find((x) => x.userId === u.id)?._sum.ml || 0,
+      waterGoalMl: u.waterGoalMl,
+      goalPct: rep.goal?.pct ?? null,
+      lostKg30: first && last && first.id !== last.id ? Math.round((first.weightKg - last.weightKg) * 10) / 10 : null,
+      daily,
+    };
+  });
+  entries.sort((a, b) => b.daysOnGoal - a.daysOnGoal || b.daysLogged - a.daysLogged || b.streak - a.streak || a.name.localeCompare(b.name));
+  res.json({ days, joined: req.user.shareRanking, entries });
+}));
+
 // ---------- Refeições ----------
 function mealData(b) {
   const type = MEAL_TYPES.includes(b.type) ? b.type : null;
@@ -217,6 +265,20 @@ api.post('/meals/estimate', wrap(async (req, res) => {
   if (hits.length >= 10) throw new HttpError(429, 'Muitas análises seguidas. Aguarde um minuto.');
   aiRate.set(req.user.id, [...hits, now]);
   res.json(await estimateMeal(description));
+}));
+
+api.post('/menu/generate', wrap(async (req, res) => {
+  const level = String(req.body?.level ?? '');
+  if (!MENU_LEVELS.includes(level)) throw new HttpError(400, 'Escolha o nível: fácil, médio ou avançado');
+  const today = dayKey();
+  const { weights, kcalByDay } = await loadReportData(req.user.id, today);
+  const rep = report(req.user, weights, kcalByDay, today);
+  if (!rep.calorieGoal) throw new HttpError(400, 'Complete o perfil (sexo, nascimento, altura e peso) para calcularmos sua meta de calorias.');
+  const now = Date.now();
+  const hits = (aiRate.get(req.user.id) || []).filter((t) => now - t < 60000);
+  if (hits.length >= 10) throw new HttpError(429, 'Muitas análises seguidas. Aguarde um minuto.');
+  aiRate.set(req.user.id, [...hits, now]);
+  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg }));
 }));
 
 api.post('/meals', wrap(async (req, res) => {
@@ -308,7 +370,7 @@ function userInput(b, { creating }) {
   }
   if (creating || b.email !== undefined) {
     data.email = str(b.email, 160).toLowerCase();
-    if (!EMAIL_RE.test(data.email)) throw new HttpError(400, 'E-mail inválido');
+    if (!LOGIN_RE.test(data.email)) throw new HttpError(400, 'Usuário inválido (mín. 3 caracteres: letras, números, ponto, hífen ou _)');
   }
   if (b.role !== undefined) {
     if (!['admin', 'member'].includes(b.role)) throw new HttpError(400, 'Perfil de acesso inválido');
@@ -324,7 +386,7 @@ function userInput(b, { creating }) {
 
 api.post('/admin/users', requireAdmin, wrap(async (req, res) => {
   const { password, ...data } = userInput(req.body || {}, { creating: true });
-  if (await prisma.user.findUnique({ where: { email: data.email } })) throw new HttpError(409, 'Este e-mail já está cadastrado');
+  if (await prisma.user.findUnique({ where: { email: data.email } })) throw new HttpError(409, 'Este usuário já está cadastrado');
   const user = await prisma.user.create({ data: { ...data, passwordHash: await bcrypt.hash(password, 10) } });
   res.status(201).json({ user: publicUser(user) });
 }));
@@ -334,7 +396,7 @@ api.put('/admin/users/:id', requireAdmin, wrap(async (req, res) => {
   if (!target) throw new HttpError(404, 'Usuário não encontrado');
   const { password, ...data } = userInput(req.body || {}, { creating: false });
   if (data.email && data.email !== target.email && (await prisma.user.findUnique({ where: { email: data.email } }))) {
-    throw new HttpError(409, 'Este e-mail já está em uso');
+    throw new HttpError(409, 'Este usuário já está em uso');
   }
   if (data.role === 'member' && target.role === 'admin') {
     if (target.id === req.user.id) throw new HttpError(400, 'Você não pode remover o seu próprio acesso de administrador');

@@ -21,6 +21,7 @@ model User {
   activity      String        @default("leve")
   calorieGoal   Int?
   waterGoalMl   Int           @default(2500)
+  shareRanking  Boolean       @default(false)
   createdAt     DateTime      @default(now())
   meals         Meal[]
   weights       WeightEntry[]

@@ -1,12 +1,14 @@
 import { useEffect, type ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { AlertCircle, Home, LineChart, Loader2, Shield, User, Utensils, X } from 'lucide-react';
+import { AlertCircle, ChefHat, Home, LineChart, Loader2, Shield, Trophy, User, Utensils, X } from 'lucide-react';
 import { useAuth } from './auth';
 
 const NAV = [
   { to: '/', label: 'Hoje', icon: Home, end: true },
   { to: '/refeicoes', label: 'Refeições', icon: Utensils, end: false },
+  { to: '/cardapio', label: 'Cardápio', icon: ChefHat, end: false },
   { to: '/progresso', label: 'Progresso', icon: LineChart, end: false },
+  { to: '/ranking', label: 'Ranking', icon: Trophy, end: false },
   { to: '/perfil', label: 'Perfil', icon: User, end: false },
 ];
 const ADMIN_NAV = { to: '/admin', label: 'Admin', icon: Shield, end: false };
@@ -52,7 +54,7 @@ export function AppLayout() {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e3efe9] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <div className={`grid ${nav.length > 4 ? 'grid-cols-5' : 'grid-cols-4'}`}>
+        <div className={`grid ${nav.length > 6 ? 'grid-cols-7' : 'grid-cols-6'}`}>
           {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}

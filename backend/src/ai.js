@@ -164,3 +164,65 @@ export async function estimateMeal(description) {
 export async function testAi({ model }) {
   await runClaude({ model, system: 'Responda apenas: OK', prompt: 'Teste de conexão.', timeoutMs: 60_000 });
 }
+
+const LEVELS = {
+  facil: 'FÁCIL: ingredientes simples e baratos de mercado, preparo de até 15 minutos, sem técnicas elaboradas (ex.: ovos mexidos, arroz com feijão, grelhados simples, frutas).',
+  medio: 'MÉDIO: receitas caseiras com 20 a 40 minutos de preparo, alguma variedade de ingredientes e temperos (ex.: strogonoff fit, omelete recheado, peixe assado com legumes).',
+  avancado: 'AVANÇADO: receitas elaboradas, com técnicas e ingredientes variados, para quem gosta de cozinhar (ex.: risoto, massas integrais frescas, marinadas, molhos caseiros, preparo acima de 40 minutos).',
+};
+export const MENU_LEVELS = Object.keys(LEVELS);
+
+const MENU_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['meals', 'tips'],
+  properties: {
+    meals: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['type', 'name', 'ingredients', 'preparation', 'kcal', 'protein_g', 'carbs_g', 'fat_g'],
+        properties: {
+          type: { type: 'string', enum: ['cafe', 'lanche_manha', 'almoco', 'lanche_tarde', 'jantar', 'ceia'] },
+          name: { type: 'string' },
+          ingredients: { type: 'array', items: { type: 'string' } },
+          preparation: { type: 'string' },
+          kcal: NUM,
+          protein_g: NUM,
+          carbs_g: NUM,
+          fat_g: NUM,
+        },
+      },
+    },
+    tips: { type: 'string' },
+  },
+};
+
+/** Gera o cardápio de um dia, no nível pedido, perto da meta de calorias do usuário. */
+export async function generateMenu({ level, kcal, goalKg, currentKg }) {
+  const { model, configured } = await aiConfig();
+  if (!configured) throw new HttpError(503, 'A IA ainda não está disponível: o servidor precisa estar logado na assinatura Claude ("claude login").');
+  const system = `Você é um nutricionista brasileiro que monta cardápios de um dia com alimentos e porções típicos do Brasil (referência TACO).
+Monte 6 refeições (cafe, lanche_manha, almoco, lanche_tarde, jantar, ceia), cada uma com nome, lista de ingredientes com quantidades caseiras e gramas, modo de preparo curto e macros.
+A soma das calorias do dia deve ficar a no máximo 5% da meta informada. Distribua proteína adequada (cerca de 30% das calorias), sem ultrapassar o que é saudável.
+Nível de dificuldade: ${LEVELS[level]}
+Em "tips", escreva em português até duas frases com uma dica para a meta de peso. Responda só com os dados pedidos, sem usar ferramentas.`;
+  const prompt = `Meta de calorias do dia: ${kcal} kcal.${currentKg && goalKg ? ` Peso atual ${currentKg} kg, peso desejado ${goalKg} kg.` : ''}`;
+  const msg = await runClaude({ model, system, schema: MENU_SCHEMA, prompt, timeoutMs: 180_000 });
+  const parsed = msg.structured_output;
+  if (!parsed || !Array.isArray(parsed.meals) || !parsed.meals.length) throw new HttpError(502, 'A IA respondeu num formato inesperado. Tente de novo.');
+  const r1 = (n) => Math.max(0, Math.round((Number(n) || 0) * 10) / 10);
+  const meals = parsed.meals.slice(0, 8).map((m) => ({
+    type: String(m.type),
+    name: String(m.name ?? '').slice(0, 120),
+    ingredients: (Array.isArray(m.ingredients) ? m.ingredients : []).slice(0, 30).map((i) => String(i).slice(0, 120)),
+    preparation: String(m.preparation ?? '').slice(0, 600),
+    kcal: Math.max(0, Math.round(Number(m.kcal) || 0)),
+    proteinG: r1(m.protein_g),
+    carbsG: r1(m.carbs_g),
+    fatG: r1(m.fat_g),
+  }));
+  const sum = (k) => meals.reduce((a, m) => a + m[k], 0);
+  return { level, targetKcal: kcal, meals, totals: { kcal: sum('kcal'), proteinG: r1(sum('proteinG')), carbsG: r1(sum('carbsG')), fatG: r1(sum('fatG')) }, tips: String(parsed.tips || '').slice(0, 300), model };
+}
