@@ -26,5 +26,12 @@ jobs:
         env:
           HUB_DEPLOY_TOKEN: ${{ secrets.HUB_DEPLOY_TOKEN }}
         run: |
-          curl -fsS -X POST -H "x-deploy-token: $HUB_DEPLOY_TOKEN" \
-            http://127.0.0.1:3001/api/aplicacoes/deploy-hook/dieta-x
+          # 409 = outro deploy ainda em andamento: espera e tenta de novo.
+          for i in $(seq 1 30); do
+            code=$(curl -sS -o /tmp/hub-deploy.json -w '%{http_code}' -X POST -H "x-deploy-token: $HUB_DEPLOY_TOKEN"               http://127.0.0.1:3001/api/aplicacoes/deploy-hook/dieta-x)
+            cat /tmp/hub-deploy.json; echo
+            [ "$code" = 200 ] && exit 0
+            [ "$code" = 409 ] || exit 1
+            sleep 20
+          done
+          exit 1
