@@ -20,7 +20,7 @@ function Week({ e }: { e: RankingEntry }) {
 
 export default function Ranking() {
   const { data, error, loading, reload } = useApi<RankingData>('/ranking');
-  const header = <PageHeader title="Ranking" subtitle="Últimos 7 dias · dias dentro da meta (±10%)" />;
+  const header = <PageHeader title="Ranking" subtitle="Últimos 7 dias · menos calorias por dia fica em 1º" />;
   if (!data) return <>{header}{loading ? <Loading /> : <ErrorBox message={error} onRetry={reload} />}</>;
 
   return (

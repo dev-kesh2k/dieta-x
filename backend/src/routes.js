@@ -202,7 +202,8 @@ api.get('/ranking', wrap(async (req, res) => {
       daily,
     };
   });
-  entries.sort((a, b) => b.daysOnGoal - a.daysOnGoal || b.daysLogged - a.daysLogged || b.streak - a.streak || a.name.localeCompare(b.name));
+  // Menos calorias (média dos dias registrados) fica em primeiro; quem não registrou nada vai para o fim.
+  entries.sort((a, b) => (a.avgKcal ?? Infinity) - (b.avgKcal ?? Infinity) || b.daysLogged - a.daysLogged || b.streak - a.streak || a.name.localeCompare(b.name));
   res.json({ days, joined: req.user.shareRanking, entries });
 }));
 
