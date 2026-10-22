@@ -112,8 +112,8 @@ export default function Meals() {
 
       {ai.data && !ai.data.configured && (
         <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          O cálculo automático por IA ainda não está ativo. Cadastre a chave da API Anthropic em{' '}
-          <b>Admin → Inteligência artificial</b> (administrador). Enquanto isso, informe as calorias manualmente.
+          O cálculo automático por IA ainda não está ativo. O administrador precisa cadastrar o token da assinatura Claude em{' '}
+          <b>Admin → Inteligência artificial</b>. Enquanto isso, informe as calorias manualmente.
         </div>
       )}
 
@@ -293,7 +293,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
           </button>
         ) : (
           <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-            IA não configurada{user?.role === 'admin' ? ' — cadastre a chave em Admin → Inteligência artificial' : ''}. Informe as calorias abaixo.
+            IA não configurada{user?.role === 'admin' ? ' — cadastre o token da assinatura em Admin → Inteligência artificial' : ''}. Informe as calorias abaixo.
           </p>
         )}
         {stale && <p className="text-xs font-semibold text-amber-700">A descrição mudou depois do cálculo. Recalcule para atualizar os valores.</p>}
