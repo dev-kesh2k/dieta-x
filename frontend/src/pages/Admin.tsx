@@ -179,8 +179,6 @@ function UserSheet({ form, meId, onClose, onSaved }: { form: Form | null; meId: 
 
 interface AiCfg {
   configured: boolean;
-  tokenPreview: string;
-  source: 'app' | 'env' | 'none';
   model: string;
   models: string[];
 }
@@ -193,7 +191,6 @@ const MODEL_LABEL: Record<string, string> = {
 
 function AiConfig() {
   const { data, reload } = useApi<AiCfg>('/ai/config');
-  const [token, setToken] = useState('');
   const [model, setModel] = useState('');
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -210,7 +207,6 @@ function AiConfig() {
     try {
       await fn();
       setMsg(ok);
-      setToken('');
       reload();
     } catch (err) {
       setError((err as Error).message);
@@ -227,44 +223,26 @@ function AiConfig() {
       <p className="text-xs text-[#5b7068]">
         O cálculo de calorias usa a sua <b>assinatura Claude (Pro ou Max)</b>, sem chave de API: cada cálculo conta no limite de uso da assinatura.
       </p>
-      <ol className="list-decimal space-y-1 rounded-xl bg-[#f3faf7] p-3 pl-7 text-xs text-[#3d524a]">
-        <li>
-          Num computador com o Claude Code instalado, rode <code className="break-all rounded bg-white px-1 font-mono">claude setup-token</code>.
-        </li>
-        <li>Faça login com a conta da assinatura no navegador que abrir.</li>
-        <li>
-          Copie o token gerado (começa com <code className="font-mono">sk-ant-oat01-</code>, vale 1 ano) e cole abaixo.
-        </li>
-      </ol>
       <p className={`rounded-xl p-2.5 text-sm font-semibold ${data?.configured ? 'bg-brand-light text-brand-dark' : 'bg-amber-50 text-amber-900'}`}>
-        {data ? (data.configured ? `Token cadastrado · ${data.tokenPreview}${data.source === 'env' ? ' (do servidor)' : ''}` : 'Sem token cadastrado') : 'Carregando…'}
+        {data ? (data.configured ? 'Servidor logado na assinatura Claude' : 'Servidor sem login Claude: rode "claude login" no computador do servidor') : 'Carregando…'}
       </p>
       <form
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => api.put('/ai/config', { token: token.trim(), model }), 'Token validado na sua assinatura e salvo.');
+          run(() => api.put('/ai/config', { model }), 'Modelo atualizado.');
         }}
       >
-        <input type="password" className="input font-mono" placeholder="sk-ant-oat01-…" value={token} onChange={(e) => setToken(e.target.value)} autoComplete="off" aria-label="Token da assinatura Claude" />
         <select className="input" value={model} onChange={(e) => setModel(e.target.value)} aria-label="Modelo">
           {(data?.models ?? []).map((m) => (
             <option key={m} value={m}>{MODEL_LABEL[m] ?? m}</option>
           ))}
         </select>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-          <button className="btn-primary" disabled={busy || !token.trim()}>{busy ? 'Validando…' : 'Salvar token'}</button>
-          <button type="button" className="btn-ghost" disabled={busy || !data || model === data.model} onClick={() => run(() => api.put('/ai/config', { model }), 'Modelo atualizado.')}>
-            Salvar só o modelo
-          </button>
+          <button className="btn-primary" disabled={busy || !data || model === data.model}>{busy ? 'Salvando…' : 'Salvar modelo'}</button>
           <button type="button" className="btn-ghost" disabled={busy || !data?.configured} onClick={() => run(() => api.post('/ai/test'), 'Conexão com a assinatura Claude OK.')}>
             Testar conexão
           </button>
-          {data?.source === 'app' && (
-            <button type="button" className="btn-ghost !bg-red-50 !text-red-700" disabled={busy} onClick={() => confirm('Remover o token da IA?') && run(() => api.put('/ai/config', { token: '' }), 'Token removido.')}>
-              Remover token
-            </button>
-          )}
         </div>
       </form>
       <ErrorBox message={error} />
