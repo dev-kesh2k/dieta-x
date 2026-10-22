@@ -1,44 +1,29 @@
-import { mkdirSync } from 'fs';
+import { existsSync } from 'fs';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { prisma, HttpError } from './db.js';
 
-// IA pela assinatura Claude (Pro/Max): o Claude Code roda como subprocesso,
-// autenticado com o token de `claude setup-token` (CLAUDE_CODE_OAUTH_TOKEN). Sem chave de API.
+// IA pela assinatura Claude (Pro/Max): o Claude Code roda como subprocesso e usa o login da
+// máquina (`claude login`), que o Hub monta no container em CLAUDE_HOME. Sem token e sem chave de API.
 export const DEFAULT_MODEL = 'opus';
 export const MODELS = ['opus', 'sonnet', 'haiku'];
 
-const TOKEN_SETTING = 'claude_oauth_token';
 const MODEL_SETTING = 'claude_model';
-const TOKEN_RE = /^sk-ant-oat01-[\w-]{20,}$/;
-const HOME = '/tmp/dieta-x-claude';
+// Pasta que contém .claude/.credentials.json (login da assinatura).
+const HOME = process.env.CLAUDE_HOME || process.env.HOME || '/root';
 
-/** Token e modelo: o que foi salvo pela tela vale mais que o .env. */
+/** Há login da assinatura disponível para o Claude Code? */
+export const hasLogin = () => existsSync(`${HOME}/.claude/.credentials.json`);
+
+/** Modelo: o que foi salvo pela tela vale mais que o .env. */
 export async function aiConfig() {
-  const rows = await prisma.setting.findMany({ where: { key: { in: [TOKEN_SETTING, MODEL_SETTING] } } });
-  const saved = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  const token = saved[TOKEN_SETTING] || process.env.CLAUDE_CODE_OAUTH_TOKEN || '';
+  const row = await prisma.setting.findUnique({ where: { key: MODEL_SETTING } });
   const envModel = MODELS.includes(process.env.CLAUDE_MODEL) ? process.env.CLAUDE_MODEL : DEFAULT_MODEL;
-  const model = MODELS.includes(saved[MODEL_SETTING]) ? saved[MODEL_SETTING] : envModel;
-  return { token, model, source: saved[TOKEN_SETTING] ? 'app' : token ? 'env' : 'none' };
+  const model = MODELS.includes(row?.value) ? row.value : envModel;
+  return { model, configured: hasLogin() };
 }
 
-export async function saveAiConfig({ token, model }) {
-  const ops = [];
-  if (token !== undefined) {
-    ops.push(
-      token
-        ? prisma.setting.upsert({ where: { key: TOKEN_SETTING }, create: { key: TOKEN_SETTING, value: token }, update: { value: token } })
-        : prisma.setting.deleteMany({ where: { key: TOKEN_SETTING } }),
-    );
-  }
-  if (model !== undefined) {
-    ops.push(prisma.setting.upsert({ where: { key: MODEL_SETTING }, create: { key: MODEL_SETTING, value: model }, update: { value: model } }));
-  }
-  await prisma.$transaction(ops);
-}
-
-export const maskToken = (k) => (k ? `${k.slice(0, 14)}…${k.slice(-4)}` : '');
-export const isToken = (k) => TOKEN_RE.test(k);
+export const saveModel = (model) =>
+  prisma.setting.upsert({ where: { key: MODEL_SETTING }, create: { key: MODEL_SETTING, value: model }, update: { value: model } });
 
 const NUM = { type: 'number', minimum: 0 };
 const MEAL_SCHEMA = {
@@ -68,7 +53,7 @@ Se o texto não descrever comida ou bebida, devolva "items" vazio e explique em 
 Responda só com os dados pedidos, sem usar ferramentas.`;
 
 const ERRORS = {
-  authentication_failed: [400, 'O token da assinatura Claude é inválido ou expirou. Gere outro com "claude setup-token" e cadastre em Admin → Inteligência artificial.'],
+  authentication_failed: [400, 'O login da assinatura Claude no servidor expirou. Rode "claude login" no computador do servidor.'],
   oauth_org_not_allowed: [400, 'Esta conta Claude não permite uso por token. Verifique a assinatura.'],
   account_on_hold: [400, 'A conta Claude está suspensa. Verifique em claude.ai.'],
   verification_required: [400, 'A conta Claude precisa de verificação. Entre em claude.ai e conclua.'],
@@ -86,10 +71,9 @@ const serial = (fn) => {
   return run;
 };
 
-/** Roda um pedido no Claude Code com o token da assinatura e devolve a mensagem de resultado. */
-function runClaude({ token, model, prompt, system, schema, timeoutMs = 120_000 }) {
+/** Roda um pedido no Claude Code com o login da assinatura e devolve a mensagem de resultado. */
+function runClaude({ model, prompt, system, schema, timeoutMs = 120_000 }) {
   return serial(async () => {
-    mkdirSync(HOME, { recursive: true });
     const abortController = new AbortController();
     const timer = setTimeout(() => abortController.abort(), timeoutMs);
     let stderr = '';
@@ -106,17 +90,16 @@ function runClaude({ token, model, prompt, system, schema, timeoutMs = 120_000 }
           ...(schema ? { outputFormat: { type: 'json_schema', schema } } : {}),
           persistSession: false,
           settingSources: [],
-          cwd: HOME,
+          cwd: '/tmp',
           abortController,
           stderr: (d) => {
             stderr = (stderr + d).slice(-2000);
           },
-          // O env substitui o do processo: só o necessário, sem chave de API (ela teria prioridade sobre o token).
+          // O env substitui o do processo: só o necessário, sem chave de API (ela teria prioridade sobre o login).
           env: {
             PATH: process.env.PATH,
             HOME,
             TZ: process.env.TZ,
-            CLAUDE_CODE_OAUTH_TOKEN: token,
             CLAUDE_AGENT_SDK_CLIENT_APP: 'dieta-x/1.0',
             DISABLE_AUTOUPDATER: '1',
             DISABLE_TELEMETRY: '1',
@@ -151,9 +134,9 @@ function runClaude({ token, model, prompt, system, schema, timeoutMs = 120_000 }
 
 /** Pede ao Claude a estimativa nutricional da refeição descrita. */
 export async function estimateMeal(description) {
-  const { token, model } = await aiConfig();
-  if (!token) throw new HttpError(503, 'A IA ainda não está configurada. Peça ao administrador para cadastrar o token da assinatura Claude em Admin → Inteligência artificial, ou informe as calorias manualmente.');
-  const msg = await runClaude({ token, model, system: SYSTEM, schema: MEAL_SCHEMA, prompt: `Refeição: ${description}` });
+  const { model, configured } = await aiConfig();
+  if (!configured) throw new HttpError(503, 'A IA ainda não está disponível: o servidor precisa estar logado na assinatura Claude ("claude login"). Informe as calorias manualmente.');
+  const msg = await runClaude({ model, system: SYSTEM, schema: MEAL_SCHEMA, prompt: `Refeição: ${description}` });
   const parsed = msg.structured_output;
   if (!parsed || !Array.isArray(parsed.items)) throw new HttpError(502, 'A IA respondeu num formato inesperado. Tente de novo.');
   const r1 = (n) => Math.max(0, Math.round((Number(n) || 0) * 10) / 10);
@@ -177,7 +160,7 @@ export async function estimateMeal(description) {
   };
 }
 
-/** Testa o token com um pedido mínimo. */
-export async function testAi({ token, model }) {
-  await runClaude({ token, model, system: 'Responda apenas: OK', prompt: 'Teste de conexão.', timeoutMs: 60_000 });
+/** Testa o login com um pedido mínimo. */
+export async function testAi({ model }) {
+  await runClaude({ model, system: 'Responda apenas: OK', prompt: 'Teste de conexão.', timeoutMs: 60_000 });
 }

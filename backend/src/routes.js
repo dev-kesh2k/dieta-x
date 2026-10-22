@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, MEAL_TYPES, bmiSeries, report } from './diet.js';
-import { DEFAULT_MODEL, MODELS, aiConfig, estimateMeal, isToken, maskToken, saveAiConfig, testAi } from './ai.js';
+import { DEFAULT_MODEL, MODELS, aiConfig, estimateMeal, saveModel, testAi } from './ai.js';
 
 export const api = Router();
 
@@ -355,11 +355,11 @@ api.delete('/admin/users/:id', requireAdmin, wrap(async (req, res) => {
 }));
 
 // ---------- Inteligência artificial (admin) ----------
-const aiView = (cfg) => ({ configured: !!cfg.token, tokenPreview: maskToken(cfg.token), source: cfg.source, model: cfg.model, models: MODELS, defaultModel: DEFAULT_MODEL });
+const aiView = (cfg) => ({ configured: cfg.configured, model: cfg.model, models: MODELS, defaultModel: DEFAULT_MODEL });
 
 api.get('/ai/status', wrap(async (_req, res) => {
   const cfg = await aiConfig();
-  res.json({ configured: !!cfg.token, model: cfg.model });
+  res.json({ configured: cfg.configured, model: cfg.model });
 }));
 
 api.get('/ai/config', requireAdmin, wrap(async (_req, res) => {
@@ -368,25 +368,16 @@ api.get('/ai/config', requireAdmin, wrap(async (_req, res) => {
 
 api.put('/ai/config', requireAdmin, wrap(async (req, res) => {
   const b = req.body || {};
-  const update = {};
   if (b.model !== undefined) {
     if (!MODELS.includes(b.model)) throw new HttpError(400, 'Modelo inválido');
-    update.model = b.model;
+    await saveModel(b.model);
   }
-  if (b.token !== undefined) {
-    const t = str(b.token, 400).replace(/\s+/g, '');
-    if (t && !isToken(t)) throw new HttpError(400, 'O token da assinatura começa com sk-ant-oat01- (gere com "claude setup-token")');
-    // Valida o token de verdade antes de salvar.
-    if (t) await testAi({ token: t, model: update.model || (await aiConfig()).model });
-    update.token = t;
-  }
-  await saveAiConfig(update);
   res.json(aiView(await aiConfig()));
 }));
 
 api.post('/ai/test', requireAdmin, wrap(async (_req, res) => {
   const cfg = await aiConfig();
-  if (!cfg.token) throw new HttpError(400, 'Nenhum token cadastrado');
+  if (!cfg.configured) throw new HttpError(400, 'O servidor não está logado na assinatura Claude (claude login)');
   await testAi(cfg);
   res.json({ ok: true, model: cfg.model });
 }));
