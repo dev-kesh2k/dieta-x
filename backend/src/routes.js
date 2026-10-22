@@ -202,8 +202,9 @@ api.get('/ranking', wrap(async (req, res) => {
       daily,
     };
   });
-  // Menos calorias (média dos dias registrados) fica em primeiro; quem não registrou nada vai para o fim.
-  entries.sort((a, b) => (a.avgKcal ?? Infinity) - (b.avgKcal ?? Infinity) || b.daysLogged - a.daysLogged || b.streak - a.streak || a.name.localeCompare(b.name));
+  // Quem fica mais perto da própria meta (média dos dias registrados) vem primeiro; sem meta ou sem registro vai para o fim.
+  const gap = (e) => (e.avgKcal != null && e.calorieGoal ? Math.abs(e.avgKcal - e.calorieGoal) / e.calorieGoal : Infinity);
+  entries.sort((a, b) => gap(a) - gap(b) || b.daysOnGoal - a.daysOnGoal || b.daysLogged - a.daysLogged || a.name.localeCompare(b.name));
   res.json({ days, joined: req.user.shareRanking, entries });
 }));
 
