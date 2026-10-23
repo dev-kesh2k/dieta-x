@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, MEAL_TYPES, bmiSeries, report } from './diet.js';
-import { DEFAULT_MODEL, MODELS, aiConfig, estimateMeal, generateMenu, MENU_LEVELS, saveModel, testAi } from './ai.js';
+import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, saveModel, testAi } from './ai.js';
 
 export const api = Router();
 
@@ -269,6 +269,21 @@ api.post('/meals/estimate', wrap(async (req, res) => {
   res.json(await estimateMeal(description));
 }));
 
+
+const askRate = new Map();
+api.post('/assistant/ask', wrap(async (req, res) => {
+  const raw = Array.isArray(req.body?.messages) ? req.body.messages.slice(-6) : [];
+  const history = raw
+    .map((m) => ({ role: m?.role === 'assistant' ? 'assistant' : 'user', text: str(m?.text, 500) }))
+    .filter((m) => m.text);
+  if (!history.length || history[history.length - 1].role !== 'user') throw new HttpError(400, 'Escreva sua pergunta');
+  const now = Date.now();
+  const hits = (askRate.get(req.user.id) || []).filter((t) => now - t < 86400000);
+  if (hits.filter((t) => now - t < 60000).length >= 5) throw new HttpError(429, 'Muitas perguntas seguidas. Aguarde um minuto.');
+  if (hits.length >= 50) throw new HttpError(429, 'Limite diário de perguntas atingido. Volte amanhã.');
+  askRate.set(req.user.id, [...hits, now]);
+  res.json({ answer: await askCalories(history) });
+}));
 api.post('/menu/generate', wrap(async (req, res) => {
   const level = String(req.body?.level ?? '');
   if (!MENU_LEVELS.includes(level)) throw new HttpError(400, 'Escolha o nível: fácil, médio ou avançado');
