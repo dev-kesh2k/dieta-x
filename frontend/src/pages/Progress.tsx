@@ -91,9 +91,15 @@ export default function Progress() {
 
         <div className="grid gap-4 lg:grid-cols-2">
           <section className="card">
-            <h2 className="mb-3 font-bold">Peso</h2>
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <h2 className="font-bold">Peso</h2>
+              {weights.length > 1 && (() => {
+                const d = Math.round((weights[weights.length - 1].weightKg - weights[0].weightKg) * 10) / 10;
+                return <span className={`text-xs font-semibold ${d <= 0 ? 'text-brand' : 'text-red-600'}`}>{signedKg(d)} no total</span>;
+              })()}
+            </div>
             {weights.length ? (
-              <LineChart points={weights.map((w) => ({ label: dateShort(w.day), value: w.weightKg }))} target={r.goal?.weightKg} targetLabel="meta" />
+              <LineChart points={weights.map((w) => ({ label: dateShort(w.day), value: w.weightKg }))} target={r.goal?.weightKg} targetLabel="meta" unit=" kg" />
             ) : (
               <Empty icon={<Scale size={32} />} text="Registre seu peso semanalmente para ver o gráfico." />
             )}
@@ -101,18 +107,27 @@ export default function Progress() {
           <section className="card">
             <h2 className="mb-3 font-bold">IMC diário</h2>
             {bmi.length ? (
+              <>
               <LineChart points={bmi.map((b) => ({ label: dateShort(b.day), value: b.bmi }))} target={24.9} targetLabel="normal ≤ 24,9" color="#0d9488" />
+              <p className="mt-1 text-xs text-[#5b7068]">Toque nos gráficos para ver o valor de cada dia.</p>
+              </>
             ) : (
               <p className="py-8 text-center text-sm text-[#5b7068]">Informe a altura no perfil e registre o peso.</p>
             )}
           </section>
           <section className="card">
-            <h2 className="mb-3 font-bold">Calorias (14 dias)</h2>
-            <BarChart points={daily.map((d) => ({ label: dateShort(d.day), value: d.kcal }))} target={r.calorieGoal} targetLabel="meta" color="#f97316" />
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <h2 className="font-bold">Calorias (14 dias)</h2>
+              {r.calorieGoal != null && <span className="text-xs text-[#5b7068]">{daily.filter((d) => d.kcal > 0 && d.kcal <= r.calorieGoal!).length} dias dentro da meta</span>}
+            </div>
+            <BarChart points={daily.map((d) => ({ label: dateShort(d.day), value: d.kcal }))} target={r.calorieGoal} targetLabel="meta" color="#10b981" overColor="#f97316" unit=" kcal" />
           </section>
           <section className="card">
-            <h2 className="mb-3 font-bold">Água (14 dias, ml)</h2>
-            <BarChart points={daily.map((d) => ({ label: dateShort(d.day), value: d.waterMl }))} target={r.waterGoalMl} targetLabel="meta" color="#0ea5e9" overColor="#0ea5e9" />
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <h2 className="font-bold">Água (14 dias)</h2>
+              <span className="text-xs text-[#5b7068]">{daily.filter((d) => d.waterMl >= r.waterGoalMl).length} dias com a meta batida</span>
+            </div>
+            <BarChart points={daily.map((d) => ({ label: dateShort(d.day), value: d.waterMl }))} target={r.waterGoalMl} targetLabel="meta" color="#0ea5e9" overColor="#0284c7" unit=" ml" />
           </section>
         </div>
 
