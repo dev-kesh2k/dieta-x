@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Scale, Trash2 } from 'lucide-react';
+import { ChevronDown, Plus, Scale, Trash2 } from 'lucide-react';
 import { api, useApi, type ProgressData } from '../api';
 import { BarChart, LineChart } from '../charts';
 import { Empty, ErrorBox, Loading, PageHeader, Stat } from '../ui';
@@ -66,8 +66,12 @@ export default function Progress() {
         </div>
 
         {(r.forecast || r.goal) && (
-          <section className="card space-y-2 text-sm">
-            <h2 className="font-bold">Como chegamos na previsão</h2>
+          <details className="card group text-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-bold [&::-webkit-details-marker]:hidden">
+              Como chegamos na previsão
+              <ChevronDown size={18} className="shrink-0 text-[#8a9a93] transition group-open:rotate-180" />
+            </summary>
+            <div className="mt-2 space-y-2">
             {r.forecast && (
               <ul className="list-disc space-y-1 pl-5 text-[#3d524a]">
                 {r.forecast.energyChange != null && (
@@ -86,7 +90,8 @@ export default function Progress() {
                 {r.goal.remaining === 0 ? 'Meta atingida! 🎉' : r.goal.etaDay ? `No ritmo atual, você chega lá por volta de ${dateFull(r.goal.etaDay)}.` : 'Ainda não dá para estimar a data no ritmo atual.'}
               </p>
             )}
-          </section>
+            </div>
+          </details>
         )}
 
         <div className="grid gap-4 lg:grid-cols-2">

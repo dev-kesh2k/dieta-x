@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { AlertCircle, ChefHat, Home, LineChart, Loader2, Shield, Trophy, User, Utensils, X } from 'lucide-react';
 import { useAuth } from './auth';
+import { AssistantButton } from './assistant';
 
 const NAV = [
   { to: '/', label: 'Hoje', icon: Home, end: true },
@@ -72,6 +73,7 @@ export function AppLayout() {
           ))}
         </div>
       </nav>
+      <AssistantButton />
     </div>
   );
 }
