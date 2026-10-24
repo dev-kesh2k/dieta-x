@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, History, Loader2, Pencil, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, History, Loader2, Pencil, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
+import { photoToDataUrl } from '../photo';
 import { api, useApi, type Estimate, type Meal, type MealItem } from '../api';
 import { useAuth } from '../auth';
 import { Empty, ErrorBox, Loading, PageHeader, Sheet } from '../ui';
@@ -183,6 +184,8 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
   const [estimating, setEstimating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (draft) {
@@ -190,8 +193,23 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
       setEstimatedFor(draft.items.length ? draft.description : '');
       setNotes('');
       setError('');
+      setPhotos([]);
     }
   }, [draft]);
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setError('');
+    try {
+      const urls = await Promise.all([...files].slice(0, 3 - photos.length).map((f) => photoToDataUrl(f)));
+      setPhotos((cur) => [...cur, ...urls].slice(0, 3));
+      setEstimatedFor('');
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      if (fileInput.current) fileInput.current.value = '';
+    }
+  };
 
   const set = (patch: Partial<Draft>) => setD((cur) => ({ ...cur, ...patch }));
   const fmt = (v: number) => String(Math.round(v * 10) / 10).replace('.', ',');
@@ -202,19 +220,21 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
   };
 
   const estimate = async () => {
-    if (d.description.trim().length < 3) return setError('Descreva o que você comeu');
+    if (d.description.trim().length < 3 && !photos.length) return setError('Descreva o que você comeu ou adicione uma foto');
     setEstimating(true);
     setError('');
     try {
-      const r = await api.post<Estimate>('/meals/estimate', { description: d.description });
+      const r = await api.post<Estimate>('/meals/estimate', { description: d.description, images: photos });
       if (!r.items.length) {
-        setNotes(r.notes || 'Não identifiquei alimentos na descrição.');
+        setNotes(r.notes || (photos.length ? 'Não identifiquei alimentos na foto.' : 'Não identifiquei alimentos na descrição.'));
         return;
       }
       applyItems(r.items);
-      set({ source: 'ia' });
+      // Só foto: a descrição vira a lista do que a IA reconheceu.
+      if (!d.description.trim()) set({ source: 'ia', description: r.items.map((i) => `${i.name} (${i.quantity})`).join(', ').slice(0, 1000) });
+      else set({ source: 'ia' });
       setNotes(r.notes);
-      setEstimatedFor(d.description);
+      setEstimatedFor(d.description.trim() ? d.description : '__foto__');
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -251,7 +271,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
     }
   };
 
-  const stale = !!estimatedFor && estimatedFor !== d.description;
+  const stale = !!estimatedFor && estimatedFor !== '__foto__' && estimatedFor !== d.description;
 
   return (
     <Sheet open={!!draft} onClose={onClose} title={d.id ? 'Editar refeição' : 'Nova refeição'}>
@@ -284,6 +304,41 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
           />
           <p className="mt-1 text-xs text-[#5b7068]">Quanto mais detalhes (quantidade, preparo), mais preciso o cálculo.</p>
         </div>
+
+        {aiReady && (
+          <div>
+            <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => addPhotos(e.target.files)} />
+            <div className="flex flex-wrap items-center gap-2">
+              {photos.map((src, i) => (
+                <div key={i} className="relative h-20 w-20 overflow-hidden rounded-xl border border-[#e3efe9]">
+                  <img src={src} alt={`Foto ${i + 1} da refeição`} className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhotos((cur) => cur.filter((_, j) => j !== i));
+                      setEstimatedFor('');
+                    }}
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                    aria-label="Remover foto"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              {photos.length < 3 && (
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  className={`flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-violet-300 text-sm font-semibold text-violet-700 transition hover:bg-violet-50 ${photos.length ? 'h-20 w-20 flex-col text-xs' : 'h-12 w-full'}`}
+                >
+                  <Camera size={photos.length ? 20 : 18} />
+                  {photos.length ? 'Mais' : 'Tirar ou escolher foto do prato'}
+                </button>
+              )}
+            </div>
+            {photos.length > 0 && <p className="mt-1 text-xs text-[#5b7068]">A IA estima os gramas de cada alimento pela foto. A descrição é opcional e ajuda a acertar (ex.: "arroz integral", "frito no óleo").</p>}
+          </div>
+        )}
 
         {aiReady ? (
           <button type="button" className="btn-primary w-full !bg-violet-600 !shadow-[0_6px_16px_rgba(124,58,237,0.3)] hover:!bg-violet-700" onClick={estimate} disabled={estimating}>

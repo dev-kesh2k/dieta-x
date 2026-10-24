@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, MEAL_TYPES, bmiSeries, report } from './diet.js';
-import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, saveModel, testAi } from './ai.js';
+import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, parseImages, saveModel, testAi } from './ai.js';
 
 export const api = Router();
 
@@ -261,12 +261,13 @@ api.get('/meals/recent', wrap(async (req, res) => {
 const aiRate = new Map();
 api.post('/meals/estimate', wrap(async (req, res) => {
   const description = str(req.body?.description, 1000);
-  if (description.length < 3) throw new HttpError(400, 'Descreva o que você comeu');
+  const images = parseImages(req.body?.images, 3);
+  if (description.length < 3 && !images.length) throw new HttpError(400, 'Descreva o que você comeu ou mande uma foto');
   const now = Date.now();
   const hits = (aiRate.get(req.user.id) || []).filter((t) => now - t < 60000);
   if (hits.length >= 10) throw new HttpError(429, 'Muitas análises seguidas. Aguarde um minuto.');
   aiRate.set(req.user.id, [...hits, now]);
-  res.json(await estimateMeal(description));
+  res.json(await estimateMeal(description, images));
 }));
 
 
@@ -276,13 +277,15 @@ api.post('/assistant/ask', wrap(async (req, res) => {
   const history = raw
     .map((m) => ({ role: m?.role === 'assistant' ? 'assistant' : 'user', text: str(m?.text, 500) }))
     .filter((m) => m.text);
+  const images = parseImages(req.body?.images, 1);
+  if (images.length && history[history.length - 1]?.role !== 'user') history.push({ role: 'user', text: 'Quantas calorias tem isto?' });
   if (!history.length || history[history.length - 1].role !== 'user') throw new HttpError(400, 'Escreva sua pergunta');
   const now = Date.now();
   const hits = (askRate.get(req.user.id) || []).filter((t) => now - t < 86400000);
   if (hits.filter((t) => now - t < 60000).length >= 5) throw new HttpError(429, 'Muitas perguntas seguidas. Aguarde um minuto.');
   if (hits.length >= 50) throw new HttpError(429, 'Limite diário de perguntas atingido. Volte amanhã.');
   askRate.set(req.user.id, [...hits, now]);
-  res.json({ answer: await askCalories(history) });
+  res.json({ answer: await askCalories(history, images) });
 }));
 api.post('/menu/generate', wrap(async (req, res) => {
   const level = String(req.body?.level ?? '');
