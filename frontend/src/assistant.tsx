@@ -35,7 +35,10 @@ export function AssistantButton() {
     }
   }
 
-  useEffect(() => end.current?.scrollIntoView({ block: 'end' }), [msgs, busy, open]);
+  // Com chaves: no Chrome novo scrollIntoView devolve uma Promise, e o React a trataria como função de limpeza (tela branca).
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: 'end' });
+  }, [msgs, busy, open]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
