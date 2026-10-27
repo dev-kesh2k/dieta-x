@@ -5,7 +5,6 @@ import { useApi, type Summary } from '../api';
 import { useAuth } from '../auth';
 import { Bar, ErrorBox, Loading, PageHeader, Ring } from '../ui';
 import { WaterCard, WeighSheet } from '../widgets';
-import { ExerciseCard } from '../exercises';
 import { dateFull, dateLong, kg, n0, n1, signedKg, todayKey } from '../util';
 
 export default function Today() {
@@ -109,7 +108,19 @@ export default function Today() {
           <WaterCard day={day} goalMl={r.waterGoalMl} onChange={reload} />
         </div>
 
-        <ExerciseCard day={day} onChange={reload} />
+        <Link to="/exercicios" className="card flex items-center gap-3 transition hover:border-orange-300">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white">
+            <Dumbbell size={22} />
+          </div>
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="font-bold">Exercícios em casa</p>
+            <p className="truncate text-[#5b7068]">
+              {data.exercise?.done ? `${data.exercise.done} desafio(s) hoje · ` : 'Faça os desafios do dia e desconte calorias'}
+              {data.exercise?.done ? <span className="font-bold text-orange-600">−{n0(burned)} kcal</span> : null}
+            </p>
+          </div>
+          <ChevronRight size={18} className="shrink-0 text-[#8a9a93]" />
+        </Link>
 
         <section className="card">
           <div className="flex items-center justify-between gap-2">
