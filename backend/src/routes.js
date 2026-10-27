@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, MEAL_TYPES, bmiSeries, report } from './diet.js';
+import { EXERCISES, exerciseKcal, findExercise } from './exercises.js';
 import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, parseImages, saveModel, testAi } from './ai.js';
 
 export const api = Router();
@@ -122,9 +123,10 @@ api.get('/summary', wrap(async (req, res) => {
   const day = dayParam(req.query.day);
   const today = dayKey();
   const { weights, kcalByDay } = await loadReportData(req.user.id, today);
-  const [meals, water] = await Promise.all([
+  const [meals, water, exercise] = await Promise.all([
     prisma.meal.findMany({ where: { userId: req.user.id, day }, orderBy: { createdAt: 'asc' } }),
     prisma.waterEntry.findMany({ where: { userId: req.user.id, day }, orderBy: { createdAt: 'asc' } }),
+    prisma.exerciseEntry.aggregate({ where: { userId: req.user.id, day }, _sum: { kcal: true }, _count: true }),
   ]);
   const totals = meals.reduce(
     (a, m) => ({ kcal: a.kcal + m.kcal, proteinG: a.proteinG + m.proteinG, carbsG: a.carbsG + m.carbsG, fatG: a.fatG + m.fatG }),
@@ -140,6 +142,8 @@ api.get('/summary', wrap(async (req, res) => {
     totals,
     meals: meals.length,
     waterMl: water.reduce((a, w) => a + w.ml, 0),
+    // Calorias gastas nos desafios de exercício cumpridos no dia (descontadas das consumidas).
+    exercise: { kcal: exercise._sum.kcal || 0, done: exercise._count },
     streak,
   });
 }));
@@ -340,6 +344,48 @@ api.post('/water', wrap(async (req, res) => {
 
 api.delete('/water/:id', wrap(async (req, res) => {
   const { count } = await prisma.waterEntry.deleteMany({ where: { id: String(req.params.id), userId: req.user.id } });
+  if (!count) throw new HttpError(404, 'Registro não encontrado');
+  res.json({ ok: true });
+}));
+
+// ---------- Exercícios em casa ----------
+// O gasto é calculado com o último peso no momento em que o desafio é marcado e fica salvo.
+api.get('/exercises', wrap(async (req, res) => {
+  const day = dayParam(req.query.day);
+  const [entries, latest] = await Promise.all([
+    prisma.exerciseEntry.findMany({ where: { userId: req.user.id, day } }),
+    prisma.weightEntry.findFirst({ where: { userId: req.user.id, day: { lte: day } }, orderBy: { day: 'desc' } }),
+  ]);
+  const byId = Object.fromEntries(entries.map((e) => [e.exerciseId, e]));
+  const weightKg = latest?.weightKg ?? null;
+  res.json({
+    day,
+    weightKg,
+    exercises: EXERCISES.map(({ met: _met, ...e }) => ({
+      ...e,
+      kcal: byId[e.id]?.kcal ?? exerciseKcal(e, weightKg),
+      entryId: byId[e.id]?.id ?? null,
+    })),
+    totalKcal: entries.reduce((a, e) => a + e.kcal, 0),
+  });
+}));
+
+api.post('/exercises', wrap(async (req, res) => {
+  const exercise = findExercise(String(req.body?.exerciseId ?? ''));
+  if (!exercise) throw new HttpError(400, 'Exercício inválido');
+  const day = dayParam(req.body?.day);
+  const latest = await prisma.weightEntry.findFirst({ where: { userId: req.user.id, day: { lte: day } }, orderBy: { day: 'desc' } });
+  const key = { userId: req.user.id, day, exerciseId: exercise.id };
+  const entry = await prisma.exerciseEntry.upsert({
+    where: { userId_day_exerciseId: key },
+    create: { ...key, kcal: exerciseKcal(exercise, latest?.weightKg) },
+    update: {},
+  });
+  res.status(201).json({ entry });
+}));
+
+api.delete('/exercises/:id', wrap(async (req, res) => {
+  const { count } = await prisma.exerciseEntry.deleteMany({ where: { id: String(req.params.id), userId: req.user.id } });
   if (!count) throw new HttpError(404, 'Registro não encontrado');
   res.json({ ok: true });
 }));

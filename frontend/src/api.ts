@@ -151,7 +151,25 @@ export interface Summary {
   totals: { kcal: number; proteinG: number; carbsG: number; fatG: number };
   meals: number;
   waterMl: number;
+  exercise: { kcal: number; done: number };
   streak: number;
+}
+
+export interface Exercise {
+  id: string;
+  name: string;
+  dose: string;
+  minutes: number;
+  tip: string;
+  kcal: number;
+  entryId: string | null;
+}
+
+export interface ExerciseDay {
+  day: string;
+  weightKg: number | null;
+  exercises: Exercise[];
+  totalKcal: number;
 }
 
 export interface WeightEntry {
