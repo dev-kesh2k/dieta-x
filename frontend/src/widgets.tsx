@@ -48,7 +48,7 @@ export function WeighSheet({ open, onClose, onSaved, lastKg }: { open: boolean; 
           <label className="label" htmlFor="w-note">Observação (opcional)</label>
           <input id="w-note" className="input" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} placeholder="ex.: em jejum, após o banho" />
         </div>
-        <p className="text-xs text-[#5b7068]">Dica: pese-se uma vez por semana, no mesmo dia e horário, em jejum. Se já houver pesagem nesta data, ela será substituída.</p>
+        <p className="text-xs text-muted">Dica: pese-se uma vez por semana, no mesmo dia e horário, em jejum. Se já houver pesagem nesta data, ela será substituída.</p>
         <ErrorBox message={error} />
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Salvando…' : 'Salvar pesagem'}</button>
       </form>
@@ -104,7 +104,7 @@ export function WaterCard({ day, goalMl, onChange }: { day: string; goalMl: numb
       </div>
       <div className="mt-3">
         <Bar value={goalMl ? total / goalMl : 0} color="bg-sky-500" />
-        <p className="mt-1.5 text-xs text-[#5b7068]">{left > 0 ? `Faltam ${liters(left)} (≈ ${Math.ceil(left / 250)} copos de 250 ml)` : 'Meta de água batida! 🎉'}</p>
+        <p className="mt-1.5 text-xs text-muted">{left > 0 ? `Faltam ${liters(left)} (≈ ${Math.ceil(left / 250)} copos de 250 ml)` : 'Meta de água batida! 🎉'}</p>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
         {QUICK.map((ml) => (

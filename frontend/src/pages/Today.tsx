@@ -63,7 +63,7 @@ export default function Today() {
             <div className="mt-4 flex flex-col items-center gap-5 min-[380px]:flex-row">
               <Ring value={goal ? net / goal : 0} size={136}>
                 <span className="text-2xl font-bold">{n0(net)}</span>
-                <span className="text-xs text-[#5b7068]">{goal ? `de ${n0(goal)} kcal` : 'kcal'}</span>
+                <span className="text-xs text-muted">{goal ? `de ${n0(goal)} kcal` : 'kcal'}</span>
               </Ring>
               <div className="w-full min-w-0 flex-1 space-y-3">
                 {left != null && (
@@ -85,8 +85,8 @@ export default function Today() {
                 {macros.map((m) => (
                   <div key={m.label}>
                     <div className="mb-1 flex justify-between gap-2 text-xs">
-                      <span className="font-semibold text-[#3d524a]">{m.label}</span>
-                      <span className="text-[#5b7068]">
+                      <span className="font-semibold text-soft">{m.label}</span>
+                      <span className="text-muted">
                         {n1(m.value)}
                         {m.goal ? ` / ${n0(m.goal)}` : ''} g
                       </span>
@@ -99,7 +99,7 @@ export default function Today() {
             <button className="btn-primary mt-4 w-full" onClick={() => navigate('/refeicoes?novo=1')}>
               <Plus size={18} /> Adicionar refeição
             </button>
-            <p className="mt-2 text-center text-xs text-[#5b7068]">
+            <p className="mt-2 text-center text-xs text-muted">
               {data.meals ? `${data.meals} refeição(ões) registrada(s) hoje · ` : ''}
               <Link to="/refeicoes" className="font-semibold text-brand-dark underline">ver refeições</Link>
             </p>
@@ -114,12 +114,12 @@ export default function Today() {
           </div>
           <div className="min-w-0 flex-1 text-sm">
             <p className="font-bold">Exercícios em casa</p>
-            <p className="truncate text-[#5b7068]">
+            <p className="truncate text-muted">
               {data.exercise?.done ? `${data.exercise.done} desafio(s) hoje · ` : 'Faça os desafios do dia e desconte calorias'}
               {data.exercise?.done ? <span className="font-bold text-orange-600">−{n0(burned)} kcal</span> : null}
             </p>
           </div>
-          <ChevronRight size={18} className="shrink-0 text-[#8a9a93]" />
+          <ChevronRight size={18} className="shrink-0 text-faint" />
         </Link>
 
         <section className="card">
@@ -146,14 +146,14 @@ export default function Today() {
           <TrendingDown size={22} className="shrink-0 text-brand" />
           <div className="min-w-0 flex-1 text-sm">
             <p className="font-bold">Semana</p>
-            <p className="text-[#5b7068]">
+            <p className="text-muted">
               {r.week.lostKg != null ? (r.week.lostKg >= 0 ? `Perdeu ${kg(r.week.lostKg)}` : `Ganhou ${kg(-r.week.lostKg)}`) : 'Sem pesagens para comparar'}
               {' · '}
               {r.week.avgKcal != null ? `média ${n0(r.week.avgKcal)} kcal/dia` : 'sem refeições na semana'}
               {r.forecast ? ` · previsão ${signedKg(r.forecast.change)}` : ''}
             </p>
           </div>
-          <ChevronRight size={18} className="shrink-0 text-[#8a9a93]" />
+          <ChevronRight size={18} className="shrink-0 text-faint" />
         </Link>
 
       </div>
@@ -164,10 +164,10 @@ export default function Today() {
 
 function Info({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="min-w-0 rounded-xl bg-[#f3faf7] p-3">
-      <p className="text-xs font-semibold text-[#5b7068]">{label}</p>
+    <div className="min-w-0 rounded-xl bg-tint p-3">
+      <p className="text-xs font-semibold text-muted">{label}</p>
       <p className="mt-0.5 truncate text-lg font-bold">{value}</p>
-      {hint && <p className="truncate text-xs text-[#5b7068]">{hint}</p>}
+      {hint && <p className="truncate text-xs text-muted">{hint}</p>}
     </div>
   );
 }

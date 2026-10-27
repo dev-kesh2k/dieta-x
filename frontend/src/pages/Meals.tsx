@@ -89,7 +89,7 @@ export default function Meals() {
         </button>
         <label className="relative min-w-0 flex-1 text-center">
           <span className="block truncate text-sm font-bold first-letter:uppercase">{day === today ? 'Hoje' : dateLong(day)}</span>
-          <span className="block text-xs text-[#5b7068]">{n0(totals.kcal)} kcal · P {n1(totals.p)} g · C {n1(totals.c)} g · G {n1(totals.f)} g</span>
+          <span className="block text-xs text-muted">{n0(totals.kcal)} kcal · P {n1(totals.p)} g · C {n1(totals.c)} g · G {n1(totals.f)} g</span>
           <input type="date" className="absolute inset-0 cursor-pointer opacity-0" value={day} max={today} onChange={(e) => e.target.value && setDay(e.target.value)} aria-label="Escolher dia" />
         </label>
         <button className="btn-icon disabled:opacity-30" onClick={() => setDay(shiftDay(day, 1))} disabled={day >= today} aria-label="Próximo dia">
@@ -135,13 +135,13 @@ export default function Meals() {
                 <h2 className="font-bold">{g.label}</h2>
                 <span className="text-sm font-semibold text-brand-dark">{n0(g.meals.reduce((a, m) => a + m.kcal, 0))} kcal</span>
               </div>
-              <ul className="divide-y divide-[#edf4f0]">
+              <ul className="divide-y divide-divider">
                 {g.meals.map((m) => (
                   <li key={m.id} className="flex items-start gap-2 py-2">
                     <div className="min-w-0 flex-1">
                       <p className="break-words text-sm font-medium">{m.description}</p>
-                      <p className="mt-0.5 text-xs text-[#5b7068]">
-                        <b className="text-[#0f2a22]">{n0(m.kcal)} kcal</b> · P {n1(m.proteinG)} g · C {n1(m.carbsG)} g · G {n1(m.fatG)} g
+                      <p className="mt-0.5 text-xs text-muted">
+                        <b className="text-ink">{n0(m.kcal)} kcal</b> · P {n1(m.proteinG)} g · C {n1(m.carbsG)} g · G {n1(m.fatG)} g
                         {m.source === 'ia' && (
                           <span className="ml-1 inline-flex items-center gap-0.5 text-violet-600">
                             · <Sparkles size={11} /> IA
@@ -284,7 +284,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
                 key={t.id}
                 type="button"
                 onClick={() => set({ type: t.id })}
-                className={`min-h-9 rounded-full px-3 text-xs font-semibold transition ${d.type === t.id ? 'bg-brand text-white' : 'bg-[#eef6f2] text-[#3d524a]'}`}
+                className={`min-h-9 rounded-full px-3 text-xs font-semibold transition ${d.type === t.id ? 'bg-brand text-white' : 'bg-tint text-soft'}`}
               >
                 {t.label}
               </button>
@@ -302,7 +302,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
             value={d.description}
             onChange={(e) => set({ description: e.target.value })}
           />
-          <p className="mt-1 text-xs text-[#5b7068]">Quanto mais detalhes (quantidade, preparo), mais preciso o cálculo.</p>
+          <p className="mt-1 text-xs text-muted">Quanto mais detalhes (quantidade, preparo), mais preciso o cálculo.</p>
         </div>
 
         {aiReady && (
@@ -310,7 +310,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
             <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => addPhotos(e.target.files)} />
             <div className="flex flex-wrap items-center gap-2">
               {photos.map((src, i) => (
-                <div key={i} className="relative h-20 w-20 overflow-hidden rounded-xl border border-[#e3efe9]">
+                <div key={i} className="relative h-20 w-20 overflow-hidden rounded-xl border border-line">
                   <img src={src} alt={`Foto ${i + 1} da refeição`} className="h-full w-full object-cover" />
                   <button
                     type="button"
@@ -336,7 +336,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
                 </button>
               )}
             </div>
-            {photos.length > 0 && <p className="mt-1 text-xs text-[#5b7068]">A IA estima os gramas de cada alimento pela foto. A descrição é opcional e ajuda a acertar (ex.: "arroz integral", "frito no óleo").</p>}
+            {photos.length > 0 && <p className="mt-1 text-xs text-muted">A IA estima os gramas de cada alimento pela foto. A descrição é opcional e ajuda a acertar (ex.: "arroz integral", "frito no óleo").</p>}
           </div>
         )}
 
@@ -353,27 +353,27 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
         {stale && <p className="text-xs font-semibold text-amber-700">A descrição mudou depois do cálculo. Recalcule para atualizar os valores.</p>}
 
         {d.items.length > 0 && (
-          <div className="rounded-xl border border-[#e3efe9]">
-            <ul className="divide-y divide-[#edf4f0]">
+          <div className="rounded-xl border border-line">
+            <ul className="divide-y divide-divider">
               {d.items.map((it, i) => (
                 <li key={i} className="flex items-start gap-2 p-2.5">
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-sm font-semibold">{it.name}</p>
-                    <p className="text-xs text-[#5b7068]">
+                    <p className="text-xs text-muted">
                       {it.quantity} · P {n1(it.proteinG)} · C {n1(it.carbsG)} · G {n1(it.fatG)}
                     </p>
                   </div>
                   <span className="shrink-0 pt-0.5 text-sm font-bold">{n0(it.kcal)} kcal</span>
-                  <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#8a9a93] hover:bg-red-50 hover:text-red-600" onClick={() => applyItems(d.items.filter((_, j) => j !== i))} aria-label={`Remover ${it.name}`}>
+                  <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-faint hover:bg-red-50 hover:text-red-600" onClick={() => applyItems(d.items.filter((_, j) => j !== i))} aria-label={`Remover ${it.name}`}>
                     <X size={16} />
                   </button>
                 </li>
               ))}
             </ul>
-            {notes && <p className="border-t border-[#edf4f0] p-2.5 text-xs text-[#5b7068]">{notes}</p>}
+            {notes && <p className="border-t border-divider p-2.5 text-xs text-muted">{notes}</p>}
           </div>
         )}
-        {!d.items.length && notes && <p className="text-xs text-[#5b7068]">{notes}</p>}
+        {!d.items.length && notes && <p className="text-xs text-muted">{notes}</p>}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Num id="kcal" label="Calorias (kcal)" value={d.kcal} onChange={(v) => set({ kcal: v })} />
@@ -409,15 +409,15 @@ function RecentSheet({ open, onClose, onPick }: { open: boolean; onClose: () => 
       ) : error ? (
         <ErrorBox message={error} />
       ) : !data?.meals.length ? (
-        <p className="py-6 text-center text-sm text-[#5b7068]">Você ainda não registrou refeições.</p>
+        <p className="py-6 text-center text-sm text-muted">Você ainda não registrou refeições.</p>
       ) : (
         <ul className="space-y-2">
           {data.meals.map((m) => (
             <li key={m.id}>
-              <button className="flex w-full items-center gap-3 rounded-xl border border-[#e3efe9] p-3 text-left transition hover:border-brand active:scale-[0.99]" onClick={() => onPick(m)}>
+              <button className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left transition hover:border-brand active:scale-[0.99]" onClick={() => onPick(m)}>
                 <div className="min-w-0 flex-1">
                   <p className="break-words text-sm font-semibold">{m.description}</p>
-                  <p className="text-xs text-[#5b7068]">{mealLabel(m.type)} · {n0(m.kcal)} kcal</p>
+                  <p className="text-xs text-muted">{mealLabel(m.type)} · {n0(m.kcal)} kcal</p>
                 </div>
                 <Plus size={18} className="shrink-0 text-brand" />
               </button>

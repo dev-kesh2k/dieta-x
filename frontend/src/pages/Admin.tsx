@@ -60,7 +60,7 @@ function UsersPanel({ meId }: { meId: string }) {
       ) : error ? (
         <ErrorBox message={error} onRetry={reload} />
       ) : (
-        <ul className="divide-y divide-[#edf4f0]">
+        <ul className="divide-y divide-divider">
           {data?.users.map((u) => (
             <li key={u.id} className="flex items-start gap-2 py-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-light font-bold text-brand-dark">{u.name.charAt(0).toUpperCase()}</div>
@@ -72,10 +72,10 @@ function UsersPanel({ meId }: { meId: string }) {
                       <Shield size={11} /> admin
                     </span>
                   )}
-                  {u.id === meId && <span className="text-[11px] font-normal text-[#8a9a93]">(você)</span>}
+                  {u.id === meId && <span className="text-[11px] font-normal text-faint">(você)</span>}
                 </p>
-                <p className="break-all text-xs text-[#5b7068]">{u.email}</p>
-                <p className="mt-0.5 text-xs text-[#5b7068]">
+                <p className="break-all text-xs text-muted">{u.email}</p>
+                <p className="mt-0.5 text-xs text-muted">
                   {u.meals} refeições · {u.weighings} pesagens
                   {u.lastWeightKg != null ? ` · ${kg(u.lastWeightKg)}` : ''}
                   {u.lastMealDay ? ` · último registro ${dateFull(u.lastMealDay)}` : ''}
@@ -151,7 +151,7 @@ function UserSheet({ form, meId, onClose, onSaved }: { form: Form | null; meId: 
             <input id="u-pass" type="text" autoComplete="new-password" className="input font-mono" minLength={8} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required={!f.id} placeholder="mín. 8 caracteres" />
             <button type="button" className="btn-ghost shrink-0 !px-3" onClick={generate}>Gerar</button>
           </div>
-          <p className="mt-1 text-xs text-[#5b7068]">Passe a senha ao usuário; ele pode trocá-la em Perfil.</p>
+          <p className="mt-1 text-xs text-muted">Passe a senha ao usuário; ele pode trocá-la em Perfil.</p>
         </div>
         <div>
           <span className="label">Acesso</span>
@@ -162,13 +162,13 @@ function UserSheet({ form, meId, onClose, onSaved }: { form: Form | null; meId: 
                 type="button"
                 disabled={f.id === meId}
                 onClick={() => setF({ ...f, role: r })}
-                className={`min-h-11 rounded-xl text-sm font-semibold disabled:opacity-60 ${f.role === r ? 'bg-brand text-white' : 'bg-[#eef6f2] text-[#3d524a]'}`}
+                className={`min-h-11 rounded-xl text-sm font-semibold disabled:opacity-60 ${f.role === r ? 'bg-brand text-white' : 'bg-tint text-soft'}`}
               >
                 {r === 'member' ? 'Usuário' : 'Administrador'}
               </button>
             ))}
           </div>
-          <p className="mt-1 text-xs text-[#5b7068]">Administradores criam usuários e configuram a IA.</p>
+          <p className="mt-1 text-xs text-muted">Administradores criam usuários e configuram a IA.</p>
         </div>
         <ErrorBox message={error} />
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Salvando…' : f.id ? 'Salvar alterações' : 'Criar usuário'}</button>
@@ -220,7 +220,7 @@ function AiConfig() {
       <h2 className="flex items-center gap-2 font-bold">
         <Sparkles size={18} className="text-violet-600" /> Inteligência artificial
       </h2>
-      <p className="text-xs text-[#5b7068]">
+      <p className="text-xs text-muted">
         O cálculo de calorias usa a sua <b>assinatura Claude (Pro ou Max)</b>, sem chave de API: cada cálculo conta no limite de uso da assinatura.
       </p>
       <p className={`rounded-xl p-2.5 text-sm font-semibold ${data?.configured ? 'bg-brand-light text-brand-dark' : 'bg-amber-50 text-amber-900'}`}>
