@@ -50,9 +50,9 @@ export default function Exercises() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-muted">Gasto com exercícios hoje</p>
-            <p className="text-2xl font-bold text-orange-600">−{n0(data.totalKcal)} kcal</p>
+            <p className="text-2xl font-bold text-orange-600">{data.totalKcal ? `−${n0(data.totalKcal)}` : '0'} kcal</p>
             <p className="truncate text-xs text-muted">
-              {doneToday ? `${doneToday} cumprido(s) · sai das calorias do dia` : 'Marque ao terminar para descontar das calorias'}
+              {doneToday ? `${doneToday} cumprido(s) · sai das calorias do dia` : 'Marque ao terminar e desconte calorias'}
             </p>
           </div>
         </section>
