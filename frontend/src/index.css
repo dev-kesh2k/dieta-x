@@ -133,6 +133,9 @@ html[data-theme='noite'] {
 :is(html[data-theme='escuro'], html[data-theme='noite']) .\!text-sky-700 { color: rgb(125 211 252) !important; }
 :is(html[data-theme='escuro'], html[data-theme='noite']) :is(.\!text-red-700, .\!text-red-600) { color: rgb(252 165 165) !important; }
 
+/* Temas escuros: o vidro do menu fica com borda discreta. */
+:is(html[data-theme='escuro'], html[data-theme='noite']) nav.backdrop-blur-2xl { border-color: rgb(255 255 255 / 0.1); }
+
 body {
   overflow-x: hidden;
   background: rgb(var(--bg));

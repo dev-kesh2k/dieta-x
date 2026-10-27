@@ -84,7 +84,7 @@ export function AppLayout() {
 
       <nav
         aria-label="Menu"
-        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-30 rounded-[1.75rem] border border-white/10 bg-bar/90 px-2 py-2 shadow-[0_12px_32px_-8px_rgba(15,42,34,0.55)] backdrop-blur-xl md:hidden"
+        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-30 rounded-[1.75rem] border border-white/40 bg-surface/35 px-2 py-2 shadow-[0_12px_32px_-10px_rgb(var(--bar)/0.35),inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-2xl backdrop-saturate-[1.8] md:hidden"
       >
         <div className="flex items-center justify-between gap-1">
           {bar.map(({ to, label, icon: Icon, end }) => (
@@ -96,7 +96,7 @@ export function AppLayout() {
               title={label}
               className={({ isActive }) =>
                 `flex h-12 min-w-0 flex-1 items-center justify-center rounded-2xl transition active:scale-95 ${
-                  isActive ? 'bg-surface/15 text-white' : 'text-white/60 hover:text-white'
+                  isActive ? 'bg-brand/15 text-brand-dark' : 'text-ink/60 hover:text-ink'
                 }`
               }
             >
@@ -107,9 +107,9 @@ export function AppLayout() {
             onClick={() => setMenu(true)}
             aria-label="Mais opções"
             aria-haspopup="dialog"
-            className={`flex h-12 min-w-0 flex-1 items-center justify-center rounded-2xl transition active:scale-95 ${moreActive ? 'bg-surface/15' : ''}`}
+            className={`flex h-12 min-w-0 flex-1 items-center justify-center rounded-2xl transition active:scale-95 ${moreActive ? 'bg-brand/15' : ''}`}
           >
-            <Avatar name={user?.name} src={user?.avatarUrl} size={36} className="ring-2 ring-white/80" />
+            <Avatar name={user?.name} src={user?.avatarUrl} size={36} className="ring-2 ring-surface" />
           </button>
         </div>
       </nav>
