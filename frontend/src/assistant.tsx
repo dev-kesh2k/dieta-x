@@ -76,21 +76,21 @@ export function AssistantButton() {
       <Sheet open={open} title="Assistente de calorias" onClose={() => setOpen(false)}>
         <div className="flex max-h-[60dvh] min-h-[30dvh] flex-col gap-2 overflow-y-auto pb-2 text-sm">
           {!msgs.length && (
-            <p className="rounded-2xl bg-[#f1f8f5] p-3 text-[#3d524a]">
+            <p className="rounded-2xl bg-tint p-3 text-soft">
               Pergunte sobre calorias de alimentos e refeições, ou mande uma foto do prato <Camera size={14} className="inline align-[-2px]" /> para saber os gramas e as calorias de cada coisa. Ex.: “Quantas calorias tem um pão francês com manteiga?”
             </p>
           )}
           {msgs.map((m, i) => (
             <div
               key={i}
-              className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 ${m.role === 'user' ? 'self-end bg-brand text-white' : 'self-start bg-[#f1f8f5] text-[#0f2a20]'}`}
+              className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 ${m.role === 'user' ? 'self-end bg-brand text-white' : 'self-start bg-tint text-ink'}`}
             >
               {m.photo && <img src={m.photo} alt="Foto enviada" className="mb-1.5 max-h-48 w-full rounded-xl object-cover" />}
               {m.role === 'assistant' ? <RichText text={m.text} /> : m.text}
             </div>
           ))}
           {busy && (
-            <div className="flex items-center gap-2 self-start text-[#8a9a93]">
+            <div className="flex items-center gap-2 self-start text-faint">
               <Loader2 size={16} className="animate-spin" /> {msgs[msgs.length - 1]?.photo ? 'Analisando a foto…' : 'Pensando…'}
             </div>
           )}
@@ -99,18 +99,18 @@ export function AssistantButton() {
         </div>
         {photo && (
           <div className="mt-2 flex items-center gap-2">
-            <div className="relative h-16 w-16 overflow-hidden rounded-xl border border-[#e3efe9]">
+            <div className="relative h-16 w-16 overflow-hidden rounded-xl border border-line">
               <img src={photo} alt="Foto a enviar" className="h-full w-full object-cover" />
               <button type="button" onClick={() => setPhoto(null)} className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white" aria-label="Remover foto">
                 <X size={12} />
               </button>
             </div>
-            <p className="text-xs text-[#5b7068]">Escreva algo se quiser (ex.: “arroz integral”) ou só envie.</p>
+            <p className="text-xs text-muted">Escreva algo se quiser (ex.: “arroz integral”) ou só envie.</p>
           </div>
         )}
         <form onSubmit={send} className="mt-2 flex gap-2">
           <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={(e) => pickPhoto(e.target.files)} />
-          <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#d9e7e0] text-violet-700 hover:bg-violet-50" onClick={() => fileInput.current?.click()} disabled={busy} aria-label="Anexar foto">
+          <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line text-violet-700 hover:bg-violet-50" onClick={() => fileInput.current?.click()} disabled={busy} aria-label="Anexar foto">
             <Camera size={20} />
           </button>
           <input className="input min-w-0 flex-1" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={photo ? 'Opcional: detalhe a foto' : 'Ex.: 1 prato de arroz e feijão'} />

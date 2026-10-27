@@ -25,6 +25,17 @@ const initials = (name = '') =>
     .map((p) => p[0]!.toUpperCase())
     .join('') || '?';
 
+/** Foto de perfil, ou as iniciais quando não há foto. */
+export function Avatar({ name, src, size = 36, className = '' }: { name?: string; src?: string | null; size?: number; className?: string }) {
+  const box = `shrink-0 rounded-full ${className}`;
+  if (src) return <img src={src} alt="" width={size} height={size} className={`${box} object-cover`} style={{ width: size, height: size }} />;
+  return (
+    <span className={`${box} flex items-center justify-center bg-brand font-bold text-white`} style={{ width: size, height: size, fontSize: size * 0.36 }}>
+      {initials(name)}
+    </span>
+  );
+}
+
 export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
   return <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className={`${className} shrink-0 rounded-xl`} />;
 }
@@ -41,7 +52,7 @@ export function AppLayout() {
   useEffect(() => setMenu(false), [pathname]);
   return (
     <div className="min-h-[100dvh] md:flex">
-      <aside className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col border-r border-[#e3efe9] bg-white px-4 py-6 md:flex">
+      <aside className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col border-r border-line bg-surface px-4 py-6 md:flex">
         <div className="mb-8 flex items-center gap-3 px-2">
           <Logo />
           <span className="text-lg font-bold">Dieta X</span>
@@ -54,7 +65,7 @@ export function AppLayout() {
               end={end}
               className={({ isActive }) =>
                 `flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${
-                  isActive ? 'bg-brand-light text-brand-dark' : 'text-[#5b7068] hover:bg-[#f1f8f5]'
+                  isActive ? 'bg-brand-light text-brand-dark' : 'text-muted hover:bg-tint'
                 }`
               }
             >
@@ -73,7 +84,7 @@ export function AppLayout() {
 
       <nav
         aria-label="Menu"
-        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-30 rounded-[1.75rem] border border-white/10 bg-[#0f2a22]/90 px-2 py-2 shadow-[0_12px_32px_-8px_rgba(15,42,34,0.55)] backdrop-blur-xl md:hidden"
+        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-30 rounded-[1.75rem] border border-white/10 bg-bar/90 px-2 py-2 shadow-[0_12px_32px_-8px_rgba(15,42,34,0.55)] backdrop-blur-xl md:hidden"
       >
         <div className="flex items-center justify-between gap-1">
           {bar.map(({ to, label, icon: Icon, end }) => (
@@ -85,7 +96,7 @@ export function AppLayout() {
               title={label}
               className={({ isActive }) =>
                 `flex h-12 min-w-0 flex-1 items-center justify-center rounded-2xl transition active:scale-95 ${
-                  isActive ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white'
+                  isActive ? 'bg-surface/15 text-white' : 'text-white/60 hover:text-white'
                 }`
               }
             >
@@ -96,9 +107,9 @@ export function AppLayout() {
             onClick={() => setMenu(true)}
             aria-label="Mais opções"
             aria-haspopup="dialog"
-            className={`flex h-12 min-w-0 flex-1 items-center justify-center rounded-2xl transition active:scale-95 ${moreActive ? 'bg-white/15' : ''}`}
+            className={`flex h-12 min-w-0 flex-1 items-center justify-center rounded-2xl transition active:scale-95 ${moreActive ? 'bg-surface/15' : ''}`}
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-bold text-white ring-2 ring-white/80">{initials(user?.name)}</span>
+            <Avatar name={user?.name} src={user?.avatarUrl} size={36} className="ring-2 ring-white/80" />
           </button>
         </div>
       </nav>
@@ -110,13 +121,13 @@ export function AppLayout() {
               to={to}
               className={({ isActive }) =>
                 `flex min-h-14 items-center gap-3 rounded-2xl px-4 text-base font-semibold transition ${
-                  isActive ? 'bg-brand-light text-brand-dark' : 'bg-[#f3faf7] text-[#0f2a22]'
+                  isActive ? 'bg-brand-light text-brand-dark' : 'bg-tint text-ink'
                 }`
               }
             >
               <Icon size={22} />
               <span className="flex-1">{label}</span>
-              <ChevronRight size={18} className="text-[#8a9a93]" />
+              <ChevronRight size={18} className="text-faint" />
             </NavLink>
           ))}
         </div>
@@ -133,7 +144,7 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
         <Logo className="h-9 w-9 md:hidden" />
         <div className="min-w-0">
           <h1 className="truncate text-[clamp(1.25rem,5vw,1.75rem)] font-bold leading-tight">{title}</h1>
-          {subtitle && <p className="truncate text-sm text-[#5b7068]">{subtitle}</p>}
+          {subtitle && <p className="truncate text-sm text-muted">{subtitle}</p>}
         </div>
       </div>
       {action}
@@ -184,7 +195,7 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-white px-4 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:max-w-lg sm:rounded-3xl sm:p-6"
+        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-surface px-4 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:max-w-lg sm:rounded-3xl sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between gap-2">
@@ -200,19 +211,19 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
 }
 
 /** Anel de progresso (0–1+). */
-export function Ring({ value, size = 140, stroke = 12, color = '#059669', children }: { value: number; size?: number; stroke?: number; color?: string; children?: ReactNode }) {
+export function Ring({ value, size = 140, stroke = 12, color = 'rgb(var(--brand))', children }: { value: number; size?: number; stroke?: number; color?: string; children?: ReactNode }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(1, value));
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="#e6f2ec" strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} style={{ stroke: 'rgb(var(--track))' }} strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke={value > 1 ? '#dc2626' : color}
+          style={{ stroke: value > 1 ? '#dc2626' : color }}
           strokeWidth={stroke}
           fill="none"
           strokeLinecap="round"
@@ -228,27 +239,27 @@ export function Ring({ value, size = 140, stroke = 12, color = '#059669', childr
 
 export function Bar({ value, color = 'bg-brand' }: { value: number; color?: string }) {
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-[#e6f2ec]">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-track">
       <div className={`h-full rounded-full ${value > 1 ? 'bg-red-500' : color} transition-all`} style={{ width: `${Math.min(100, Math.max(0, value * 100))}%` }} />
     </div>
   );
 }
 
 export function Stat({ label, value, hint, tone = 'default' }: { label: string; value: ReactNode; hint?: ReactNode; tone?: 'default' | 'good' | 'bad' }) {
-  const color = tone === 'good' ? 'text-brand' : tone === 'bad' ? 'text-red-600' : 'text-[#0f2a22]';
+  const color = tone === 'good' ? 'text-brand' : tone === 'bad' ? 'text-red-600' : 'text-ink';
   return (
     <div className="card min-w-0">
-      <p className="text-xs font-semibold text-[#5b7068]">{label}</p>
+      <p className="text-xs font-semibold text-muted">{label}</p>
       <p className={`mt-1 break-words text-xl font-bold sm:text-2xl ${color}`}>{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-[#5b7068]">{hint}</p>}
+      {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
 
 export function Empty({ icon, text, children }: { icon: ReactNode; text: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#cfe3d9] bg-white/60 px-4 py-10 text-center text-sm text-[#5b7068]">
-      <div className="text-[#9fbfb1]">{icon}</div>
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line2 bg-surface/60 px-4 py-10 text-center text-sm text-muted">
+      <div className="text-faint">{icon}</div>
       <p>{text}</p>
       {children}
     </div>
