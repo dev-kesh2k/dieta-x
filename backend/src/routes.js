@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, MEAL_TYPES, bmiSeries, report } from './diet.js';
-import { EXERCISES, exerciseKcal, findExercise } from './exercises.js';
+import { LEVELS, UNLOCK_DAYS, exerciseKcal, findExercise, levelProgress } from './exercises.js';
 import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, parseImages, saveModel, testAi } from './ai.js';
 
 export const api = Router();
@@ -350,18 +350,29 @@ api.delete('/water/:id', wrap(async (req, res) => {
 
 // ---------- Exercícios em casa ----------
 // O gasto é calculado com o último peso no momento em que o desafio é marcado e fica salvo.
+async function exerciseLevels(userId) {
+  const rows = await prisma.exerciseEntry.findMany({ where: { userId }, select: { day: true, exerciseId: true } });
+  const doneByDay = {};
+  for (const r of rows) (doneByDay[r.day] ||= new Set()).add(r.exerciseId);
+  return levelProgress(doneByDay);
+}
+
 api.get('/exercises', wrap(async (req, res) => {
   const day = dayParam(req.query.day);
-  const [entries, latest] = await Promise.all([
+  const [entries, latest, progress] = await Promise.all([
     prisma.exerciseEntry.findMany({ where: { userId: req.user.id, day } }),
     prisma.weightEntry.findFirst({ where: { userId: req.user.id, day: { lte: day } }, orderBy: { day: 'desc' } }),
+    exerciseLevels(req.user.id),
   ]);
   const byId = Object.fromEntries(entries.map((e) => [e.exerciseId, e]));
   const weightKg = latest?.weightKg ?? null;
-  res.json({
-    day,
-    weightKg,
-    exercises: EXERCISES.map((e) => ({
+  const levels = LEVELS.map((l, i) => ({
+    level: l.level,
+    name: l.name,
+    description: l.description,
+    unlocked: progress[i].unlocked,
+    completeDays: progress[i].completeDays,
+    exercises: l.exercises.map((e) => ({
       id: e.id,
       name: e.name,
       dose: e.dose,
@@ -370,6 +381,13 @@ api.get('/exercises', wrap(async (req, res) => {
       kcal: byId[e.id]?.kcal ?? exerciseKcal(e, weightKg),
       entryId: byId[e.id]?.id ?? null,
     })),
+  }));
+  res.json({
+    day,
+    weightKg,
+    unlockDays: UNLOCK_DAYS,
+    currentLevel: Math.max(...levels.filter((l) => l.unlocked).map((l) => l.level)),
+    levels,
     totalKcal: entries.reduce((a, e) => a + e.kcal, 0),
   });
 }));
@@ -377,6 +395,10 @@ api.get('/exercises', wrap(async (req, res) => {
 api.post('/exercises', wrap(async (req, res) => {
   const exercise = findExercise(String(req.body?.exerciseId ?? ''));
   if (!exercise) throw new HttpError(400, 'Exercício inválido');
+  const progress = await exerciseLevels(req.user.id);
+  if (!progress.find((p) => p.level === exercise.level)?.unlocked) {
+    throw new HttpError(403, `Complete o nível anterior em ${UNLOCK_DAYS} dias para liberar este`);
+  }
   const day = dayParam(req.body?.day);
   const latest = await prisma.weightEntry.findFirst({ where: { userId: req.user.id, day: { lte: day } }, orderBy: { day: 'desc' } });
   const key = { userId: req.user.id, day, exerciseId: exercise.id };
