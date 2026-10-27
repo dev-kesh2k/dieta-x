@@ -54,7 +54,7 @@ export default function Login() {
         <form onSubmit={submit} className="w-full max-w-sm space-y-4">
           <div>
             <h2 className="text-xl font-bold">Entrar</h2>
-            <p className="text-sm text-[#5b7068]">Acesso criado pelo administrador do app.</p>
+            <p className="text-sm text-muted">Acesso criado pelo administrador do app.</p>
           </div>
           <div>
             <label className="label" htmlFor="email">Usuário</label>

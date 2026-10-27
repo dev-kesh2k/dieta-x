@@ -49,9 +49,9 @@ export default function Exercises() {
             <Flame size={28} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-[#5b7068]">Gasto com exercícios hoje</p>
+            <p className="text-xs font-semibold text-muted">Gasto com exercícios hoje</p>
             <p className="text-2xl font-bold text-orange-600">−{n0(data.totalKcal)} kcal</p>
-            <p className="truncate text-xs text-[#5b7068]">
+            <p className="truncate text-xs text-muted">
               {doneToday ? `${doneToday} cumprido(s) · sai das calorias do dia` : 'Marque ao terminar para descontar das calorias'}
             </p>
           </div>
@@ -67,7 +67,7 @@ export default function Exercises() {
                 aria-selected={active}
                 onClick={() => setLevel(l.level)}
                 className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition ${
-                  active ? 'bg-orange-500 text-white shadow-[0_4px_12px_rgba(249,115,22,0.35)]' : l.unlocked ? 'bg-white text-[#3d524a] ring-1 ring-[#e3efe9]' : 'bg-[#eef3f1] text-[#8a9a93]'
+                  active ? 'bg-orange-500 text-white shadow-[0_4px_12px_rgba(249,115,22,0.35)]' : l.unlocked ? 'bg-surface text-soft ring-1 ring-line' : 'bg-tint text-faint'
                 }`}
               >
                 {!l.unlocked && <Lock size={14} />}
@@ -83,7 +83,7 @@ export default function Exercises() {
               <h2 className="flex items-center gap-2 font-bold">
                 <Dumbbell size={18} className="shrink-0 text-orange-500" /> Nível {current.level} · {current.name}
               </h2>
-              <p className="mt-0.5 text-xs text-[#5b7068]">{current.description}</p>
+              <p className="mt-0.5 text-xs text-muted">{current.description}</p>
             </div>
             {current.unlocked && (
               <span className="shrink-0 whitespace-nowrap rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-700">
@@ -96,7 +96,7 @@ export default function Exercises() {
             <div className="mt-3">
               <Bar value={done / current.exercises.length} color="bg-orange-400" />
               {next && (
-                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[#5b7068]">
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
                   <Trophy size={13} className="shrink-0 text-amber-500" />
                   {next.unlocked
                     ? `Nível ${next.level} já liberado`
@@ -105,7 +105,7 @@ export default function Exercises() {
               )}
             </div>
           ) : (
-            <p className="mt-3 flex items-start gap-2 rounded-xl bg-[#f3faf7] p-3 text-sm text-[#3d524a]">
+            <p className="mt-3 flex items-start gap-2 rounded-xl bg-tint p-3 text-sm text-soft">
               <Lock size={16} className="mt-0.5 shrink-0" />
               Complete todos os desafios do nível {current.level - 1} em {data.unlockDays} dias para liberar este nível.
             </p>
@@ -120,35 +120,35 @@ export default function Exercises() {
               const ok = !!e.entryId;
               const locked = !current.unlocked && !ok;
               return (
-                <li key={e.id} className={`rounded-xl border p-2.5 transition ${ok ? 'border-orange-200 bg-orange-50' : 'border-[#e3efe9] bg-white'} ${locked ? 'opacity-60' : ''}`}>
+                <li key={e.id} className={`rounded-xl border p-2.5 transition ${ok ? 'border-orange-200 bg-orange-50' : 'border-line bg-surface'} ${locked ? 'opacity-60' : ''}`}>
                   <div className="flex items-center gap-3">
                     <button
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-95 disabled:opacity-50 ${
-                        ok ? 'border-orange-500 bg-orange-500 text-white' : 'border-[#cfe3d9] text-transparent hover:border-orange-400'
+                        ok ? 'border-orange-500 bg-orange-500 text-white' : 'border-line2 text-transparent hover:border-orange-400'
                       }`}
                       disabled={busy === e.id || locked}
                       onClick={() => toggle(e.id, e.entryId)}
                       aria-label={ok ? `Desmarcar ${e.name}` : `Marcar ${e.name} como feito`}
                       aria-pressed={ok}
                     >
-                      {locked ? <Lock size={16} className="text-[#8a9a93]" /> : <Check size={20} strokeWidth={3} />}
+                      {locked ? <Lock size={16} className="text-faint" /> : <Check size={20} strokeWidth={3} />}
                     </button>
                     <button className="min-w-0 flex-1 text-left" onClick={() => setOpen(open === e.id ? null : e.id)} aria-expanded={open === e.id}>
                       <p className="truncate text-sm font-semibold">{e.name}</p>
-                      <p className="truncate text-xs text-[#5b7068]">{/minuto/.test(e.dose) ? e.dose : `${e.dose} · ~${e.minutes} min`}</p>
+                      <p className="truncate text-xs text-muted">{/minuto/.test(e.dose) ? e.dose : `${e.dose} · ~${e.minutes} min`}</p>
                     </button>
-                    <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-xs font-bold ${ok ? 'bg-orange-500 text-white' : 'bg-[#f3faf7] text-[#5b7068]'}`}>
+                    <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-xs font-bold ${ok ? 'bg-orange-500 text-white' : 'bg-tint text-muted'}`}>
                       {ok ? `−${n0(e.kcal)}` : `≈ ${n0(e.kcal)}`} kcal
                     </span>
                   </div>
-                  {open === e.id && <p className="mt-2 pl-14 text-xs text-[#3d524a]">{e.tip}</p>}
+                  {open === e.id && <p className="mt-2 pl-14 text-xs text-soft">{e.tip}</p>}
                 </li>
               );
             })}
           </ul>
         </section>
 
-        <p className="flex items-start gap-1.5 px-1 text-[11px] text-[#5b7068]">
+        <p className="flex items-start gap-1.5 px-1 text-[11px] text-muted">
           <Info size={13} className="mt-px shrink-0" />
           {data.weightKg
             ? `Gasto estimado para ${kg(data.weightKg)} pela intensidade (MET) e o tempo de cada exercício. Toque no nome para ver como fazer.`

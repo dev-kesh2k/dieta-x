@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, getToken, setToken, setUnauthorizedHandler, type User } from './api';
+import { applyTheme } from './theme';
 
 interface AuthCtx {
   user: User | null;
@@ -30,6 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
       .finally(() => setReady(true));
   }, [logout]);
+
+  // O tema salvo no perfil vale em qualquer aparelho em que a pessoa entrar.
+  useEffect(() => {
+    if (user?.theme) applyTheme(user.theme);
+  }, [user?.theme]);
 
   const login = async (email: string, password: string) => {
     const r = await api.post<{ token: string; user: User }>('/auth/login', { email, password });

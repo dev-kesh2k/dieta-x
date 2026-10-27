@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from 'react';
-import { CheckCircle2, KeyRound, LogOut } from 'lucide-react';
+import { useRef, useState, type FormEvent } from 'react';
+import { Camera, Check, CheckCircle2, KeyRound, LogOut, Trash2 } from 'lucide-react';
 import { api, useApi, type Summary, type User } from '../api';
 import { useAuth } from '../auth';
-import { ErrorBox, PageHeader } from '../ui';
+import { Avatar, ErrorBox, PageHeader } from '../ui';
+import { avatarFromFile } from '../photo';
+import { THEMES, applyTheme } from '../theme';
 import { ACTIVITY_LEVELS, n0, parseNum, todayKey } from '../util';
 
 export default function Profile() {
@@ -13,6 +15,7 @@ export default function Profile() {
       <PageHeader title="Perfil" subtitle={user.email} />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
+          <LookCard user={user} />
           <PersonalForm user={user} />
         </div>
         <div className="space-y-4">
@@ -23,6 +26,106 @@ export default function Profile() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Foto de perfil e tema: salvam na hora, sem precisar do botão Salvar. */
+function LookCard({ user }: { user: User }) {
+  const { setUser } = useAuth();
+  const file = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async (data: { avatarUrl?: string | null; theme?: string }) => {
+    setBusy(true);
+    setError('');
+    try {
+      const { user: u } = await api.put<{ user: User }>('/me', data);
+      setUser(u);
+    } catch (err) {
+      setError((err as Error).message);
+      if (data.theme) applyTheme(user.theme);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pick = async (f: File | undefined) => {
+    if (!f) return;
+    try {
+      await save({ avatarUrl: await avatarFromFile(f) });
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  return (
+    <section className="card space-y-4">
+      <h2 className="font-bold">Foto e aparência</h2>
+      <div className="flex items-center gap-4">
+        <button type="button" className="relative shrink-0" onClick={() => file.current?.click()} aria-label="Trocar foto de perfil" disabled={busy}>
+          <Avatar name={user.name} src={user.avatarUrl} size={80} />
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-brand text-white">
+            <Camera size={15} />
+          </span>
+        </button>
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <button type="button" className="btn-ghost !min-h-10 !py-2" onClick={() => file.current?.click()} disabled={busy}>
+            <Camera size={16} /> {user.avatarUrl ? 'Trocar foto' : 'Adicionar foto'}
+          </button>
+          {user.avatarUrl && (
+            <button type="button" className="btn-ghost !min-h-10 !bg-red-50 !py-2 !text-red-700" onClick={() => save({ avatarUrl: null })} disabled={busy}>
+              <Trash2 size={16} /> Remover foto
+            </button>
+          )}
+        </div>
+        <input
+          ref={file}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            pick(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+      </div>
+
+      <div>
+        <span className="label">Tema</span>
+        <div className="grid grid-cols-3 gap-2">
+          {THEMES.map((t) => {
+            const active = (user.theme || 'verde') === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                disabled={busy}
+                aria-pressed={active}
+                onClick={() => {
+                  applyTheme(t.id);
+                  save({ theme: t.id });
+                }}
+                className={`relative flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2.5 text-xs font-semibold transition active:scale-95 ${
+                  active ? 'border-brand bg-brand-light text-brand-dark' : 'border-line bg-tint text-soft'
+                }`}
+              >
+                <span className="relative flex h-10 w-full items-center justify-center overflow-hidden rounded-xl" style={{ background: t.swatch[1] }}>
+                  <span className="h-5 w-5 rounded-full" style={{ background: t.swatch[0] }} />
+                  {active && (
+                    <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-white">
+                      <Check size={11} strokeWidth={3} />
+                    </span>
+                  )}
+                </span>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <ErrorBox message={error} />
+    </section>
   );
 }
 
@@ -94,7 +197,7 @@ function PersonalForm({ user }: { user: User }) {
           <span className="label">Sexo</span>
           <div className="grid grid-cols-2 gap-2">
             {(['F', 'M'] as const).map((s) => (
-              <button key={s} type="button" onClick={() => set({ sex: s })} className={`min-h-11 rounded-xl text-sm font-semibold ${f.sex === s ? 'bg-brand text-white' : 'bg-[#eef6f2] text-[#3d524a]'}`}>
+              <button key={s} type="button" onClick={() => set({ sex: s })} className={`min-h-11 rounded-xl text-sm font-semibold ${f.sex === s ? 'bg-brand text-white' : 'bg-tint text-soft'}`}>
                 {s === 'F' ? 'Feminino' : 'Masculino'}
               </button>
             ))}
@@ -113,8 +216,8 @@ function PersonalForm({ user }: { user: User }) {
           <input id="p-goal" className="input" inputMode="decimal" placeholder="ex.: 70" value={f.goalWeightKg} onChange={(e) => set({ goalWeightKg: e.target.value })} />
         </div>
       </div>
-      <p className="rounded-xl bg-[#f3faf7] p-3 text-xs text-[#5b7068]">
-        Peso atual: <b className="text-[#0f2a22]">{r?.weightKg != null ? `${String(r.weightKg).replace('.', ',')} kg` : 'sem pesagem'}</b> — registre o peso na tela Progresso (uma vez por semana).
+      <p className="rounded-xl bg-tint p-3 text-xs text-muted">
+        Peso atual: <b className="text-ink">{r?.weightKg != null ? `${String(r.weightKg).replace('.', ',')} kg` : 'sem pesagem'}</b> — registre o peso na tela Progresso (uma vez por semana).
       </p>
 
       <div>
@@ -128,7 +231,7 @@ function PersonalForm({ user }: { user: User }) {
         </select>
       </div>
 
-      <div className="rounded-xl border border-[#e3efe9] p-3">
+      <div className="rounded-xl border border-line p-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-semibold">Meta de calorias automática</span>
           <button
@@ -137,12 +240,12 @@ function PersonalForm({ user }: { user: User }) {
             aria-checked={f.autoCalories}
             aria-label="Meta de calorias automática"
             onClick={() => set({ autoCalories: !f.autoCalories, calorieGoal: f.calorieGoal || str(r?.suggestedCalories) })}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition ${f.autoCalories ? 'bg-brand' : 'bg-[#cfdcd6]'}`}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${f.autoCalories ? 'bg-brand' : 'bg-line2'}`}
           >
-            <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${f.autoCalories ? 'left-[1.375rem]' : 'left-0.5'}`} />
+            <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-surface shadow transition-all ${f.autoCalories ? 'left-[1.375rem]' : 'left-0.5'}`} />
           </button>
         </div>
-        <p className="mt-1 text-xs text-[#5b7068]">
+        <p className="mt-1 text-xs text-muted">
           {r?.tdee
             ? `Metabolismo basal ${n0(r.bmr!)} kcal · gasto diário ≈ ${n0(r.tdee)} kcal${r.goalCalories ? ` · meta para ${r.goalCalories > r.tdee! ? 'ganhar' : 'emagrecer'}: ${n0(r.goalCalories)} kcal/dia` : ''}.`
             : 'Preencha sexo, nascimento, altura e registre o peso para calcularmos a meta.'}
@@ -159,7 +262,7 @@ function PersonalForm({ user }: { user: User }) {
         <label className="label" htmlFor="p-water">Meta de água (ml/dia)</label>
         <input id="p-water" className="input" inputMode="numeric" value={f.waterGoalMl} onChange={(e) => set({ waterGoalMl: e.target.value })} />
         {waterHint && (
-          <p className="mt-1 text-xs text-[#5b7068]">
+          <p className="mt-1 text-xs text-muted">
             Recomendação para o seu peso: ~{n0(waterHint)} ml (35 ml/kg).{' '}
             <button type="button" className="font-semibold text-brand-dark underline" onClick={() => set({ waterGoalMl: String(waterHint) })}>
               Usar
@@ -168,7 +271,7 @@ function PersonalForm({ user }: { user: User }) {
         )}
       </div>
 
-      <div className="rounded-xl border border-[#e3efe9] p-3">
+      <div className="rounded-xl border border-line p-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-semibold">Compartilhar no ranking</span>
           <button
@@ -177,12 +280,12 @@ function PersonalForm({ user }: { user: User }) {
             aria-checked={f.shareRanking}
             aria-label="Compartilhar no ranking"
             onClick={() => set({ shareRanking: !f.shareRanking })}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition ${f.shareRanking ? 'bg-brand' : 'bg-[#cfdcd6]'}`}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${f.shareRanking ? 'bg-brand' : 'bg-line2'}`}
           >
-            <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${f.shareRanking ? 'left-[1.375rem]' : 'left-0.5'}`} />
+            <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-surface shadow transition-all ${f.shareRanking ? 'left-[1.375rem]' : 'left-0.5'}`} />
           </button>
         </div>
-        <p className="mt-1 text-xs text-[#5b7068]">Mostra seu nome, calorias, metas e resultados dos últimos 7 dias aos outros usuários. O peso em kg não é exibido.</p>
+        <p className="mt-1 text-xs text-muted">Mostra seu nome, calorias, metas e resultados dos últimos 7 dias aos outros usuários. O peso em kg não é exibido.</p>
       </div>
 
       <ErrorBox message={error} />

@@ -69,11 +69,11 @@ export default function Progress() {
           <details className="card group text-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-bold [&::-webkit-details-marker]:hidden">
               Como chegamos na previsão
-              <ChevronDown size={18} className="shrink-0 text-[#8a9a93] transition group-open:rotate-180" />
+              <ChevronDown size={18} className="shrink-0 text-faint transition group-open:rotate-180" />
             </summary>
             <div className="mt-2 space-y-2">
             {r.forecast && (
-              <ul className="list-disc space-y-1 pl-5 text-[#3d524a]">
+              <ul className="list-disc space-y-1 pl-5 text-soft">
                 {r.forecast.energyChange != null && (
                   <li>
                     Balanço calórico: você come em média {n0(r.week.avgKcal ?? 0)} kcal e gasta cerca de {n0(r.tdee ?? 0)} kcal por dia → {signedKg(r.forecast.energyChange)} por semana (7.700 kcal ≈ 1 kg).
@@ -85,7 +85,7 @@ export default function Progress() {
               </ul>
             )}
             {r.goal && (
-              <p className="text-[#3d524a]">
+              <p className="text-soft">
                 Meta de {kg(r.goal.weightKg)} (IMC {r.goal.bmi != null ? n1(r.goal.bmi) : '—'}): {r.goal.pct}% concluído.{' '}
                 {r.goal.remaining === 0 ? 'Meta atingida! 🎉' : r.goal.etaDay ? `No ritmo atual, você chega lá por volta de ${dateFull(r.goal.etaDay)}.` : 'Ainda não dá para estimar a data no ritmo atual.'}
               </p>
@@ -113,24 +113,24 @@ export default function Progress() {
             <h2 className="mb-3 font-bold">IMC diário</h2>
             {bmi.length ? (
               <>
-              <LineChart points={bmi.map((b) => ({ label: dateShort(b.day), value: b.bmi }))} target={24.9} targetLabel="normal ≤ 24,9" color="#0d9488" />
-              <p className="mt-1 text-xs text-[#5b7068]">Toque nos gráficos para ver o valor de cada dia.</p>
+              <LineChart points={bmi.map((b) => ({ label: dateShort(b.day), value: b.bmi }))} target={24.9} targetLabel="normal ≤ 24,9" />
+              <p className="mt-1 text-xs text-muted">Toque nos gráficos para ver o valor de cada dia.</p>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-[#5b7068]">Informe a altura no perfil e registre o peso.</p>
+              <p className="py-8 text-center text-sm text-muted">Informe a altura no perfil e registre o peso.</p>
             )}
           </section>
           <section className="card">
             <div className="mb-3 flex items-baseline justify-between gap-2">
               <h2 className="font-bold">Calorias (14 dias)</h2>
-              {r.calorieGoal != null && <span className="text-xs text-[#5b7068]">{daily.filter((d) => d.kcal > 0 && d.kcal <= r.calorieGoal!).length} dias dentro da meta</span>}
+              {r.calorieGoal != null && <span className="text-xs text-muted">{daily.filter((d) => d.kcal > 0 && d.kcal <= r.calorieGoal!).length} dias dentro da meta</span>}
             </div>
-            <BarChart points={daily.map((d) => ({ label: dateShort(d.day), value: d.kcal }))} target={r.calorieGoal} targetLabel="meta" color="#10b981" overColor="#f97316" unit=" kcal" />
+            <BarChart points={daily.map((d) => ({ label: dateShort(d.day), value: d.kcal }))} target={r.calorieGoal} targetLabel="meta" overColor="#f97316" unit=" kcal" />
           </section>
           <section className="card">
             <div className="mb-3 flex items-baseline justify-between gap-2">
               <h2 className="font-bold">Água (14 dias)</h2>
-              <span className="text-xs text-[#5b7068]">{daily.filter((d) => d.waterMl >= r.waterGoalMl).length} dias com a meta batida</span>
+              <span className="text-xs text-muted">{daily.filter((d) => d.waterMl >= r.waterGoalMl).length} dias com a meta batida</span>
             </div>
             <BarChart points={daily.map((d) => ({ label: dateShort(d.day), value: d.waterMl }))} target={r.waterGoalMl} targetLabel="meta" color="#0ea5e9" overColor="#0284c7" unit=" ml" />
           </section>
@@ -139,9 +139,9 @@ export default function Progress() {
         <section className="card">
           <h2 className="mb-2 font-bold">Pesagens</h2>
           {weights.length === 0 ? (
-            <p className="py-4 text-sm text-[#5b7068]">Nenhuma pesagem registrada.</p>
+            <p className="py-4 text-sm text-muted">Nenhuma pesagem registrada.</p>
           ) : (
-            <ul className="divide-y divide-[#edf4f0]">
+            <ul className="divide-y divide-divider">
               {[...weights].reverse().map((w, i, arr) => {
                 const prev = arr[i + 1];
                 const diff = prev ? Math.round((w.weightKg - prev.weightKg) * 10) / 10 : null;
@@ -152,7 +152,7 @@ export default function Progress() {
                         {kg(w.weightKg)}
                         {diff != null && diff !== 0 && <span className={`ml-2 text-xs ${diff < 0 ? 'text-brand' : 'text-red-600'}`}>{signedKg(diff)}</span>}
                       </p>
-                      <p className="truncate text-xs text-[#5b7068]">
+                      <p className="truncate text-xs text-muted">
                         {dateFull(w.day)}
                         {w.note ? ` · ${w.note}` : ''}
                       </p>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Trophy } from 'lucide-react';
 import { useApi, type RankingData, type RankingEntry } from '../api';
-import { Empty, ErrorBox, Loading, PageHeader } from '../ui';
+import { Empty, ErrorBox, Loading, PageHeader, Avatar } from '../ui';
 import { n0, signedKg } from '../util';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -30,7 +30,7 @@ function Week({ e }: { e: RankingEntry }) {
     <div className="flex h-8 items-end gap-1" aria-hidden>
       {e.daily.map((k, i) => {
         const ok = e.calorieGoal != null && k > 0 && Math.abs(k - e.calorieGoal) <= e.calorieGoal * 0.1;
-        return <span key={i} className={`w-full rounded-sm ${k === 0 ? 'bg-[#edf4f0]' : ok ? 'bg-brand' : 'bg-[#f97316]'}`} style={{ height: `${Math.max(8, (k / max) * 100)}%` }} />;
+        return <span key={i} className={`w-full rounded-sm ${k === 0 ? 'bg-divider' : ok ? 'bg-brand' : 'bg-[#f97316]'}`} style={{ height: `${Math.max(8, (k / max) * 100)}%` }} />;
       })}
     </div>
   );
@@ -47,18 +47,18 @@ export default function Ranking() {
       {header}
       <div className="space-y-3">
         {!data.joined && (
-          <p className="card text-sm text-[#3d524a]">
+          <p className="card text-sm text-soft">
             Você não está no ranking. <Link to="/perfil" className="font-semibold text-brand-dark underline">Ative “Compartilhar no ranking” no perfil</Link> para aparecer e dividir suas estatísticas.
           </p>
         )}
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-[#edf4f0] p-1" role="tablist">
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-divider p-1" role="tablist">
           {MODES.map((m) => (
             <button
               key={m.id}
               role="tab"
               aria-selected={mode === m.id}
               onClick={() => setMode(m.id)}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${mode === m.id ? 'bg-white text-brand-dark shadow-sm' : 'text-[#5b7068]'}`}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${mode === m.id ? 'bg-surface text-brand-dark shadow-sm' : 'text-muted'}`}
             >
               {m.label}
             </button>
@@ -72,9 +72,10 @@ export default function Ranking() {
               <li key={e.id} className={`card space-y-3 ${e.isMe ? 'ring-2 ring-brand' : ''}`}>
                 <div className="flex items-center gap-3">
                   <span className="w-8 text-center text-xl font-bold">{MEDAL[i] ?? `${i + 1}º`}</span>
+                  <Avatar name={e.name} src={e.avatarUrl} size={40} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold">{e.name}{e.isMe ? ' (você)' : ''}</p>
-                    <p className="text-xs text-[#5b7068]">{e.daysOnGoal} de 7 dias na meta · {e.daysLogged} registrados</p>
+                    <p className="text-xs text-muted">{e.daysOnGoal} de 7 dias na meta · {e.daysLogged} registrados</p>
                   </div>
                   <span className={`text-right text-sm font-bold ${mode === 'weight' && e.lostKg30 != null ? (e.lostKg30 > 0 ? 'text-brand' : 'text-red-600') : ''}`}>{score(e, mode)}</span>
                   {e.streak > 0 && (
@@ -82,12 +83,12 @@ export default function Ranking() {
                   )}
                 </div>
                 <Week e={e} />
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-[#3d524a] sm:grid-cols-4">
-                  <div><dt className="text-[#5b7068]">Hoje</dt><dd className="font-semibold">{n0(e.todayKcal)}{e.calorieGoal ? ` / ${n0(e.calorieGoal)}` : ''} kcal</dd></div>
-                  <div><dt className="text-[#5b7068]">Média 7 dias</dt><dd className="font-semibold">{e.avgKcal != null ? `${n0(e.avgKcal)} kcal` : '—'}</dd></div>
-                  <div><dt className="text-[#5b7068]">Água hoje</dt><dd className="font-semibold">{n0(e.waterMl)} / {n0(e.waterGoalMl)} ml</dd></div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-soft sm:grid-cols-4">
+                  <div><dt className="text-muted">Hoje</dt><dd className="font-semibold">{n0(e.todayKcal)}{e.calorieGoal ? ` / ${n0(e.calorieGoal)}` : ''} kcal</dd></div>
+                  <div><dt className="text-muted">Média 7 dias</dt><dd className="font-semibold">{e.avgKcal != null ? `${n0(e.avgKcal)} kcal` : '—'}</dd></div>
+                  <div><dt className="text-muted">Água hoje</dt><dd className="font-semibold">{n0(e.waterMl)} / {n0(e.waterGoalMl)} ml</dd></div>
                   <div>
-                    <dt className="text-[#5b7068]">Resultado</dt>
+                    <dt className="text-muted">Resultado</dt>
                     <dd className="font-semibold">
                       {e.lostKg30 != null ? `${signedKg(-e.lostKg30)} em 30 d` : '—'}
                       {e.goalPct != null ? ` · meta ${e.goalPct}%` : ''}
