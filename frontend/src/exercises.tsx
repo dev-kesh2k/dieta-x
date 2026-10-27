@@ -76,7 +76,7 @@ export function ExerciseCard({ day, onChange }: { day: string; onChange?: () => 
                 <button className="min-w-0 flex-1 text-left" onClick={() => setOpen(open === e.id ? null : e.id)} aria-expanded={open === e.id}>
                   <p className="truncate text-sm font-semibold">{e.name}</p>
                   <p className="truncate text-xs text-[#5b7068]">
-                    {e.dose} · ~{e.minutes} min
+                    {/minuto/.test(e.dose) ? e.dose : `${e.dose} · ~${e.minutes} min`}
                   </p>
                 </button>
                 <span

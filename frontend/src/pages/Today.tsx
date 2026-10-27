@@ -78,7 +78,8 @@ export default function Today() {
                       <Dumbbell size={15} className="shrink-0" /> −{n0(burned)} kcal com exercícios
                     </p>
                     <p className="mt-0.5 text-xs text-orange-900/70">
-                      {n0(totals.kcal)} consumidas − {n0(burned)} gastas = {n0(net)} kcal
+                      {n0(totals.kcal)} consumidas − {n0(burned)} gastas = {totals.kcal < burned ? '−' : ''}
+                      {n0(Math.abs(totals.kcal - burned))} kcal
                     </p>
                   </div>
                 )}
