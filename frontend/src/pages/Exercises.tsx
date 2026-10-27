@@ -52,7 +52,7 @@ export default function Exercises() {
             <p className="text-xs font-semibold text-[#5b7068]">Gasto com exercícios hoje</p>
             <p className="text-2xl font-bold text-orange-600">−{n0(data.totalKcal)} kcal</p>
             <p className="truncate text-xs text-[#5b7068]">
-              {doneToday ? `${doneToday} desafio(s) cumprido(s) · descontado das calorias do dia` : 'Marque os desafios ao terminar para descontar das calorias'}
+              {doneToday ? `${doneToday} cumprido(s) · sai das calorias do dia` : 'Marque ao terminar para descontar das calorias'}
             </p>
           </div>
         </section>
