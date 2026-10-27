@@ -56,7 +56,7 @@ export default function Menu() {
               key={l.id}
               type="button"
               onClick={() => setLevel(l.id)}
-              className={`min-h-11 rounded-xl px-3 py-2 text-left ${level === l.id ? 'bg-brand text-white' : 'bg-[#eef6f2] text-[#3d524a]'}`}
+              className={`min-h-11 rounded-xl px-3 py-2 text-left ${level === l.id ? 'bg-brand text-white' : 'bg-tint text-soft'}`}
             >
               <span className="block text-sm font-semibold">{l.label}</span>
               <span className="block text-xs opacity-80">{l.hint}</span>
@@ -74,13 +74,13 @@ export default function Menu() {
         <div className="mt-4 space-y-3">
           <div className="card text-sm">
             <b>{n0(menu.totals.kcal)} kcal</b> de {n0(menu.targetKcal)} kcal · P {n1(menu.totals.proteinG)} g · C {n1(menu.totals.carbsG)} g · G {n1(menu.totals.fatG)} g
-            {menu.tips && <p className="mt-2 text-xs text-[#5b7068]">{menu.tips}</p>}
+            {menu.tips && <p className="mt-2 text-xs text-muted">{menu.tips}</p>}
           </div>
           {menu.meals.map((m, i) => (
             <div key={i} className="card space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase text-[#5b7068]">{mealLabel(m.type)}</p>
+                  <p className="text-xs font-semibold uppercase text-muted">{mealLabel(m.type)}</p>
                   <h3 className="break-words font-bold">{m.name}</h3>
                 </div>
                 <span className="shrink-0 text-sm font-semibold">{n0(m.kcal)} kcal</span>
@@ -90,8 +90,8 @@ export default function Menu() {
                   <li key={j}>{ing}</li>
                 ))}
               </ul>
-              <p className="text-sm text-[#3d524a]">{m.preparation}</p>
-              <p className="text-xs text-[#5b7068]">P {n1(m.proteinG)} g · C {n1(m.carbsG)} g · G {n1(m.fatG)} g</p>
+              <p className="text-sm text-soft">{m.preparation}</p>
+              <p className="text-xs text-muted">P {n1(m.proteinG)} g · C {n1(m.carbsG)} g · G {n1(m.fatG)} g</p>
             </div>
           ))}
         </div>

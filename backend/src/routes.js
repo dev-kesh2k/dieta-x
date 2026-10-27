@@ -11,6 +11,7 @@ export const api = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const str = (v, max = 120) => String(v ?? '').trim().slice(0, max);
 const LOGIN_RE = /^[a-z0-9._@-]{3,160}$/;
+const THEMES = ['verde', 'oceano', 'lavanda', 'rosa', 'escuro', 'noite'];
 
 /** Número validado; `optional` aceita vazio (null). */
 function num(v, label, min, max, { optional = false, int = false } = {}) {
@@ -95,6 +96,17 @@ api.put('/me', wrap(async (req, res) => {
   }
   if (b.calorieGoal !== undefined) data.calorieGoal = num(b.calorieGoal, 'a meta de calorias', 800, 6000, { optional: true, int: true });
   if (b.shareRanking !== undefined) data.shareRanking = b.shareRanking === true;
+  if (b.theme !== undefined) {
+    if (!THEMES.includes(b.theme)) throw new HttpError(400, 'Tema inválido');
+    data.theme = b.theme;
+  }
+  if (b.avatarUrl !== undefined) {
+    // Foto já reduzida no aparelho (JPEG ~256 px); guardada como data URL no próprio usuário.
+    if (b.avatarUrl === null || b.avatarUrl === '') data.avatarUrl = null;
+    else if (typeof b.avatarUrl !== 'string' || b.avatarUrl.length > 150000 || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b.avatarUrl)) {
+      throw new HttpError(400, 'Foto inválida ou grande demais');
+    } else data.avatarUrl = b.avatarUrl;
+  }
   if (b.waterGoalMl !== undefined) data.waterGoalMl = num(b.waterGoalMl, 'a meta de água (ml)', 500, 8000, { int: true });
   const user = await prisma.user.update({ where: { id: req.user.id }, data });
   res.json({ user: publicUser(user) });
@@ -192,6 +204,7 @@ api.get('/ranking', wrap(async (req, res) => {
     return {
       id: u.id,
       name: u.name,
+      avatarUrl: u.avatarUrl,
       isMe: u.id === req.user.id,
       calorieGoal: goal,
       todayKcal: kcalByDay[today] || 0,

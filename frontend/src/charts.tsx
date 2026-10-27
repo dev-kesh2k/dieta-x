@@ -1,3 +1,4 @@
+import { themeColor } from './theme';
 import { useEffect, useId, useRef, useState, type PointerEvent } from 'react';
 
 /** Largura real do contêiner, para desenhar o SVG em pixels (texto sem distorção). */
@@ -58,9 +59,9 @@ function Grid({ min, max, width, y }: { min: number; max: number; width: number;
     <>
       {ticks(min, max).map((t, i) => (
         <g key={t}>
-          <line x1={PAD.l} x2={width - PAD.r} y1={y(t)} y2={y(t)} stroke="#edf4f0" strokeDasharray={i === 0 ? undefined : '2 4'} />
+          <line x1={PAD.l} x2={width - PAD.r} y1={y(t)} y2={y(t)} style={{ stroke: 'rgb(var(--divider))' }} strokeDasharray={i === 0 ? undefined : '2 4'} />
           {i % 2 === 0 && (
-            <text x={PAD.l - 6} y={y(t) + 4} textAnchor="end" fontSize="10" fill="#8a9a93">
+            <text x={PAD.l - 6} y={y(t) + 4} textAnchor="end" fontSize="10" style={{ fill: 'rgb(var(--faint))' }}>
               {fmt(t)}
             </text>
           )}
@@ -101,7 +102,7 @@ function Tip({ x, y, width, title, text }: { x: number; y: number; width: number
   );
 }
 
-export function LineChart({ points, target, targetLabel, height = 190, color = '#059669', unit = '' }: { points: Point[]; target?: number | null; targetLabel?: string; height?: number; color?: string; unit?: string }) {
+export function LineChart({ points, target, targetLabel, height = 190, color = themeColor('brand') || '#059669', unit = '' }: { points: Point[]; target?: number | null; targetLabel?: string; height?: number; color?: string; unit?: string }) {
   const [ref, width] = useWidth();
   const gid = useId().replace(/:/g, '');
   const { min, max } = scale(points.map((p) => p.value), [target]);
@@ -148,7 +149,7 @@ export function LineChart({ points, target, targetLabel, height = 190, color = '
                 <circle cx={x(i)} cy={y(p.value)} r={i === shown ? 5 : 3} fill={i === shown ? color : '#fff'} stroke={i === shown ? '#fff' : color} strokeWidth="2" />
               )}
               {i % every === 0 && (
-                <text x={x(i)} y={height - 6} textAnchor={points.length < 2 ? 'middle' : i === 0 ? 'start' : i === last ? 'end' : 'middle'} fontSize="10" fill="#8a9a93">
+                <text x={x(i)} y={height - 6} textAnchor={points.length < 2 ? 'middle' : i === 0 ? 'start' : i === last ? 'end' : 'middle'} fontSize="10" style={{ fill: 'rgb(var(--faint))' }}>
                   {p.label}
                 </text>
               )}
@@ -161,7 +162,7 @@ export function LineChart({ points, target, targetLabel, height = 190, color = '
   );
 }
 
-export function BarChart({ points, target, targetLabel, height = 190, color = '#10b981', overColor = '#f87171', unit = '', showAvg = true }: { points: Point[]; target?: number | null; targetLabel?: string; height?: number; color?: string; overColor?: string; unit?: string; showAvg?: boolean }) {
+export function BarChart({ points, target, targetLabel, height = 190, color = themeColor('brand') || '#10b981', overColor = '#f87171', unit = '', showAvg = true }: { points: Point[]; target?: number | null; targetLabel?: string; height?: number; color?: string; overColor?: string; unit?: string; showAvg?: boolean }) {
   const [ref, width] = useWidth();
   const { max } = scale(points.map((p) => p.value), [target], true);
   const iw = Math.max(0, width - PAD.l - PAD.r);
@@ -185,14 +186,14 @@ export function BarChart({ points, target, targetLabel, height = 190, color = '#
             const dim = active != null && active !== i;
             return (
               <g key={i}>
-                {active === i && <rect x={cx - slot / 2} y={PAD.t} width={slot} height={ih} fill="#f1f5f9" rx="4" />}
+                {active === i && <rect x={cx - slot / 2} y={PAD.t} width={slot} height={ih} style={{ fill: 'rgb(var(--tint))' }} rx="4" />}
                 {p.value > 0 ? (
                   <rect x={cx - bw / 2} y={y(p.value)} width={bw} height={Math.max(1, PAD.t + ih - y(p.value))} rx={Math.min(6, bw / 2)} fill={over ? overColor : color} opacity={dim ? 0.45 : 1} />
                 ) : (
-                  <rect x={cx - bw / 2} y={PAD.t + ih - 3} width={bw} height={3} rx="1.5" fill="#e2e8f0" />
+                  <rect x={cx - bw / 2} y={PAD.t + ih - 3} width={bw} height={3} rx="1.5" style={{ fill: 'rgb(var(--track))' }} />
                 )}
                 {i % every === 0 && (
-                  <text x={cx} y={height - 6} textAnchor="middle" fontSize="10" fill="#8a9a93">
+                  <text x={cx} y={height - 6} textAnchor="middle" fontSize="10" style={{ fill: 'rgb(var(--faint))' }}>
                     {p.label}
                   </text>
                 )}

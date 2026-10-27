@@ -88,6 +88,8 @@ export interface User {
   calorieGoal: number | null;
   waterGoalMl: number;
   shareRanking: boolean;
+  theme: string;
+  avatarUrl: string | null;
   createdAt: string;
 }
 
@@ -206,6 +208,7 @@ export interface WaterEntry {
 export interface RankingEntry {
   id: string;
   name: string;
+  avatarUrl: string | null;
   isMe: boolean;
   calorieGoal: number | null;
   todayKcal: number;
