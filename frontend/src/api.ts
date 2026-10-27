@@ -165,10 +165,21 @@ export interface Exercise {
   entryId: string | null;
 }
 
+export interface ExerciseLevel {
+  level: number;
+  name: string;
+  description: string;
+  unlocked: boolean;
+  completeDays: number;
+  exercises: Exercise[];
+}
+
 export interface ExerciseDay {
   day: string;
   weightKg: number | null;
-  exercises: Exercise[];
+  unlockDays: number;
+  currentLevel: number;
+  levels: ExerciseLevel[];
   totalKcal: number;
 }
 

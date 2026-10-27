@@ -1,18 +1,29 @@
-import { useEffect, type ReactNode } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { AlertCircle, ChefHat, Home, LineChart, Loader2, Shield, Trophy, User, Utensils, X } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { AlertCircle, ChefHat, ChevronRight, Dumbbell, Home, LineChart, Loader2, Shield, Trophy, User, Utensils, X } from 'lucide-react';
 import { useAuth } from './auth';
 import { AssistantButton } from './assistant';
 
+// Barra do celular: os 5 primeiros; o resto fica no menu do avatar (como no Facebook).
 const NAV = [
   { to: '/', label: 'Hoje', icon: Home, end: true },
   { to: '/refeicoes', label: 'Refeições', icon: Utensils, end: false },
+  { to: '/exercicios', label: 'Exercícios', icon: Dumbbell, end: false },
   { to: '/cardapio', label: 'Cardápio', icon: ChefHat, end: false },
   { to: '/progresso', label: 'Progresso', icon: LineChart, end: false },
   { to: '/ranking', label: 'Ranking', icon: Trophy, end: false },
   { to: '/perfil', label: 'Perfil', icon: User, end: false },
 ];
 const ADMIN_NAV = { to: '/admin', label: 'Admin', icon: Shield, end: false };
+const BAR_SIZE = 5;
+
+const initials = (name = '') =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join('') || '?';
 
 export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
   return <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className={`${className} shrink-0 rounded-xl`} />;
@@ -22,6 +33,12 @@ export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
 export function AppLayout() {
   const { user } = useAuth();
   const nav = user?.role === 'admin' ? [...NAV, ADMIN_NAV] : NAV;
+  const bar = nav.slice(0, BAR_SIZE);
+  const more = nav.slice(BAR_SIZE);
+  const { pathname } = useLocation();
+  const [menu, setMenu] = useState(false);
+  const moreActive = more.some((m) => pathname.startsWith(m.to));
+  useEffect(() => setMenu(false), [pathname]);
   return (
     <div className="min-h-[100dvh] md:flex">
       <aside className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col border-r border-[#e3efe9] bg-white px-4 py-6 md:flex">
@@ -48,31 +65,62 @@ export function AppLayout() {
         </nav>
       </aside>
 
-      <main className="min-w-0 flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-10">
+      <main className="min-w-0 flex-1 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-10">
         <div className="mx-auto w-full max-w-5xl px-[max(1rem,env(safe-area-inset-left))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 md:pt-8">
           <Outlet />
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e3efe9] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <div className={`grid ${nav.length > 6 ? 'grid-cols-7' : 'grid-cols-6'}`}>
-          {nav.map(({ to, label, icon: Icon, end }) => (
+      <nav
+        aria-label="Menu"
+        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-30 rounded-[1.75rem] border border-white/10 bg-[#0f2a22]/90 px-2 py-2 shadow-[0_12px_32px_-8px_rgba(15,42,34,0.55)] backdrop-blur-xl md:hidden"
+      >
+        <div className="flex items-center justify-between gap-1">
+          {bar.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
+              aria-label={label}
+              title={label}
               className={({ isActive }) =>
-                `flex min-h-[3.75rem] min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold min-[360px]:text-[11px] ${
-                  isActive ? 'text-brand' : 'text-[#8a9a93]'
+                `flex h-12 min-w-0 flex-1 items-center justify-center rounded-2xl transition active:scale-95 ${
+                  isActive ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white'
+                }`
+              }
+            >
+              <Icon size={24} />
+            </NavLink>
+          ))}
+          <button
+            onClick={() => setMenu(true)}
+            aria-label="Mais opções"
+            aria-haspopup="dialog"
+            className={`flex h-12 min-w-0 flex-1 items-center justify-center rounded-2xl transition active:scale-95 ${moreActive ? 'bg-white/15' : ''}`}
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-bold text-white ring-2 ring-white/80">{initials(user?.name)}</span>
+          </button>
+        </div>
+      </nav>
+      <Sheet open={menu} onClose={() => setMenu(false)} title={user?.name ?? 'Menu'}>
+        <div className="space-y-2">
+          {more.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex min-h-14 items-center gap-3 rounded-2xl px-4 text-base font-semibold transition ${
+                  isActive ? 'bg-brand-light text-brand-dark' : 'bg-[#f3faf7] text-[#0f2a22]'
                 }`
               }
             >
               <Icon size={22} />
-              {label}
+              <span className="flex-1">{label}</span>
+              <ChevronRight size={18} className="text-[#8a9a93]" />
             </NavLink>
           ))}
         </div>
-      </nav>
+      </Sheet>
       <AssistantButton />
     </div>
   );

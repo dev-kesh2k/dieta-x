@@ -69,7 +69,7 @@ export function AssistantButton() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Assistente de calorias"
-        className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-lg shadow-brand/30 transition active:scale-95 md:right-6 md:bottom-6"
+        className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-lg shadow-brand/30 transition active:scale-95 md:right-6 md:bottom-6"
       >
         <Sparkles size={24} />
       </button>
