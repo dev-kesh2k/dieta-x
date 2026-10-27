@@ -361,8 +361,12 @@ api.get('/exercises', wrap(async (req, res) => {
   res.json({
     day,
     weightKg,
-    exercises: EXERCISES.map(({ met: _met, ...e }) => ({
-      ...e,
+    exercises: EXERCISES.map((e) => ({
+      id: e.id,
+      name: e.name,
+      dose: e.dose,
+      minutes: e.minutes,
+      tip: e.tip,
       kcal: byId[e.id]?.kcal ?? exerciseKcal(e, weightKg),
       entryId: byId[e.id]?.id ?? null,
     })),
