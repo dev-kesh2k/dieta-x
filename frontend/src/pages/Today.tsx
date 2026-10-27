@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Flame, Plus, Scale, TrendingDown, UserCog } from 'lucide-react';
+import { ChevronRight, Dumbbell, Flame, Plus, Scale, TrendingDown, UserCog } from 'lucide-react';
 import { useApi, type Summary } from '../api';
 import { useAuth } from '../auth';
 import { Bar, ErrorBox, Loading, PageHeader, Ring } from '../ui';
 import { WaterCard, WeighSheet } from '../widgets';
+import { ExerciseCard } from '../exercises';
 import { dateFull, dateLong, kg, n0, n1, signedKg, todayKey } from '../util';
 
 export default function Today() {
@@ -20,7 +21,10 @@ export default function Today() {
 
   const { report: r, totals } = data;
   const goal = r.calorieGoal;
-  const left = goal != null ? goal - totals.kcal : null;
+  // Saldo do dia: consumidas menos o gasto dos exercícios cumpridos.
+  const burned = data.exercise?.kcal ?? 0;
+  const net = Math.max(0, totals.kcal - burned);
+  const left = goal != null ? goal - net : null;
   // Metas de macros a partir da meta calórica: 30% proteína, 45% carboidrato, 25% gordura.
   const macros = [
     { label: 'Proteína', value: totals.proteinG, goal: goal ? (goal * 0.3) / 4 : null, color: 'bg-rose-400' },
@@ -58,8 +62,8 @@ export default function Today() {
               {data.streak > 1 && <span className="shrink-0 whitespace-nowrap rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700">{data.streak} dias seguidos</span>}
             </div>
             <div className="mt-4 flex flex-col items-center gap-5 min-[380px]:flex-row">
-              <Ring value={goal ? totals.kcal / goal : 0} size={136}>
-                <span className="text-2xl font-bold">{n0(totals.kcal)}</span>
+              <Ring value={goal ? net / goal : 0} size={136}>
+                <span className="text-2xl font-bold">{n0(net)}</span>
                 <span className="text-xs text-[#5b7068]">{goal ? `de ${n0(goal)} kcal` : 'kcal'}</span>
               </Ring>
               <div className="w-full min-w-0 flex-1 space-y-3">
@@ -67,6 +71,17 @@ export default function Today() {
                   <p className={`text-sm font-semibold ${left >= 0 ? 'text-brand-dark' : 'text-red-600'}`}>
                     {left >= 0 ? `Restam ${n0(left)} kcal` : `${n0(-left)} kcal acima da meta`}
                   </p>
+                )}
+                {burned > 0 && (
+                  <div className="rounded-xl border border-orange-200 bg-orange-50 p-2.5">
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-orange-700">
+                      <Dumbbell size={15} className="shrink-0" /> −{n0(burned)} kcal com exercícios
+                    </p>
+                    <p className="mt-0.5 text-xs text-orange-900/70">
+                      {n0(totals.kcal)} consumidas − {n0(burned)} gastas = {totals.kcal < burned ? '−' : ''}
+                      {n0(Math.abs(totals.kcal - burned))} kcal
+                    </p>
+                  </div>
                 )}
                 {macros.map((m) => (
                   <div key={m.label}>
@@ -93,6 +108,8 @@ export default function Today() {
 
           <WaterCard day={day} goalMl={r.waterGoalMl} onChange={reload} />
         </div>
+
+        <ExerciseCard day={day} onChange={reload} />
 
         <section className="card">
           <div className="flex items-center justify-between gap-2">

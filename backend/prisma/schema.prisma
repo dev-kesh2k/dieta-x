@@ -26,6 +26,7 @@ model User {
   meals         Meal[]
   weights       WeightEntry[]
   waters        WaterEntry[]
+  exercises     ExerciseEntry[]
 }
 
 model Meal {
@@ -67,6 +68,18 @@ model WaterEntry {
   createdAt DateTime @default(now())
 
   @@index([userId, day])
+}
+
+model ExerciseEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day        String
+  exerciseId String
+  kcal       Int
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, day, exerciseId])
 }
 
 model Setting {
