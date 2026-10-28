@@ -19,6 +19,10 @@ export function applyTheme(id: string | null | undefined) {
   if (theme.id === 'verde') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', theme.id);
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.bar);
+  // Ícone da aba e o de "Adicionar à Tela de Início" (o iPhone guarda o ícone na hora de adicionar).
+  const base = import.meta.env.BASE_URL;
+  document.querySelector('link[rel="icon"]')?.setAttribute('href', `${base}icon-${theme.id}.svg`);
+  document.querySelector('link[rel="apple-touch-icon"]')?.setAttribute('href', `${base}icon-${theme.id}-180.png`);
   try {
     localStorage.setItem(KEY, theme.id);
   } catch {
