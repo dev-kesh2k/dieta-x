@@ -31,6 +31,8 @@ export default function Today() {
     { label: 'Proteína', value: totals.proteinG, goal: protein, color: 'bg-rose-400' },
     { label: 'Carboidrato', value: totals.carbsG, goal: goal ? Math.max(0, (goal - protein! * 4 - fat! * 9) / 4) : null, color: 'bg-amber-400' },
     { label: 'Gordura', value: totals.fatG, goal: fat, color: 'bg-violet-400' },
+    // Açúcares totais (naturais + adicionados): limite de referência da UE de 90 g para 2.000 kcal, proporcional à meta.
+    { label: 'Açúcar', value: totals.sugarG ?? 0, goal: goal ? (goal * 90) / 2000 : null, color: 'bg-pink-400', limit: true },
   ];
 
   return (
@@ -87,13 +89,16 @@ export default function Today() {
                 {macros.map((m) => (
                   <div key={m.label}>
                     <div className="mb-1 flex justify-between gap-2 text-xs">
-                      <span className="font-semibold text-soft">{m.label}</span>
+                      <span className="font-semibold text-soft">
+                        {m.label}
+                        {'limit' in m && <span className="font-normal text-muted"> (limite)</span>}
+                      </span>
                       <span className="text-muted">
                         {n1(m.value)}
                         {m.goal ? ` / ${n0(m.goal)}` : ''} g
                       </span>
                     </div>
-                    <Bar value={m.goal ? m.value / m.goal : 0} color={m.color} />
+                    <Bar value={m.goal ? m.value / m.goal : 0} color={'limit' in m && m.goal && m.value > m.goal ? 'bg-red-500' : m.color} />
                   </div>
                 ))}
               </div>
