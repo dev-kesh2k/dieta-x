@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
-import { ACTIVITY, MEAL_TYPES, bmiSeries, report } from './diet.js';
+import { ACTIVITY, GOAL_MODES, MEAL_TYPES, bmiSeries, report } from './diet.js';
 import { LEVELS, UNLOCK_DAYS, exerciseKcal, findExercise, levelProgress } from './exercises.js';
 import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, parseImages, saveModel, testAi } from './ai.js';
 
@@ -90,6 +90,15 @@ api.put('/me', wrap(async (req, res) => {
   }
   if (b.heightCm !== undefined) data.heightCm = num(b.heightCm, 'a altura (cm)', 100, 250, { optional: true });
   if (b.goalWeightKg !== undefined) data.goalWeightKg = num(b.goalWeightKg, 'o peso meta (kg)', 30, 300, { optional: true });
+  if (b.goalMode !== undefined) {
+    if (!GOAL_MODES.includes(b.goalMode)) throw new HttpError(400, 'Objetivo inválido');
+    data.goalMode = b.goalMode;
+  }
+  for (const k of ['wakeTime', 'sleepTime']) {
+    if (b[k] === undefined) continue;
+    if (typeof b[k] !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(b[k])) throw new HttpError(400, 'Horário inválido (use HH:MM)');
+    data[k] = b[k];
+  }
   if (b.activity !== undefined) {
     if (!(b.activity in ACTIVITY)) throw new HttpError(400, 'Nível de atividade inválido');
     data.activity = b.activity;
@@ -123,18 +132,21 @@ api.put('/me/password', wrap(async (req, res) => {
 
 // ---------- Resumo ----------
 async function loadReportData(userId, today) {
-  const [weights, meals] = await Promise.all([
+  const range = { gte: addDays(today, -29), lte: today };
+  const [weights, meals, burned] = await Promise.all([
     prisma.weightEntry.findMany({ where: { userId }, orderBy: { day: 'asc' } }),
-    prisma.meal.groupBy({ by: ['day'], where: { userId, day: { gte: addDays(today, -29), lte: today } }, _sum: { kcal: true } }),
+    prisma.meal.groupBy({ by: ['day'], where: { userId, day: range }, _sum: { kcal: true } }),
+    prisma.exerciseEntry.groupBy({ by: ['day'], where: { userId, day: range }, _sum: { kcal: true } }),
   ]);
   const kcalByDay = Object.fromEntries(meals.map((m) => [m.day, m._sum.kcal || 0]));
-  return { weights, kcalByDay };
+  const burnedByDay = Object.fromEntries(burned.map((e) => [e.day, e._sum.kcal || 0]));
+  return { weights, kcalByDay, burnedByDay };
 }
 
 api.get('/summary', wrap(async (req, res) => {
   const day = dayParam(req.query.day);
   const today = dayKey();
-  const { weights, kcalByDay } = await loadReportData(req.user.id, today);
+  const { weights, kcalByDay, burnedByDay } = await loadReportData(req.user.id, today);
   const [meals, water, exercise] = await Promise.all([
     prisma.meal.findMany({ where: { userId: req.user.id, day }, orderBy: { createdAt: 'asc' } }),
     prisma.waterEntry.findMany({ where: { userId: req.user.id, day }, orderBy: { createdAt: 'asc' } }),
@@ -150,7 +162,7 @@ api.get('/summary', wrap(async (req, res) => {
   for (let d = kcalByDay[today] ? today : addDays(today, -1); kcalByDay[d]; d = addDays(d, -1)) streak += 1;
   res.json({
     day,
-    report: report(req.user, weights, kcalByDay, today),
+    report: report(req.user, weights, kcalByDay, today, burnedByDay),
     totals,
     meals: meals.length,
     waterMl: water.reduce((a, w) => a + w.ml, 0),
@@ -162,13 +174,13 @@ api.get('/summary', wrap(async (req, res) => {
 
 api.get('/progress', wrap(async (req, res) => {
   const today = dayKey();
-  const { weights, kcalByDay } = await loadReportData(req.user.id, today);
+  const { weights, kcalByDay, burnedByDay } = await loadReportData(req.user.id, today);
   const from = addDays(today, -29);
   const water = await prisma.waterEntry.groupBy({ by: ['day'], where: { userId: req.user.id, day: { gte: from } }, _sum: { ml: true } });
   const waterByDay = Object.fromEntries(water.map((w) => [w.day, w._sum.ml || 0]));
   const days = Array.from({ length: 14 }, (_, i) => addDays(today, -13 + i));
   res.json({
-    report: report(req.user, weights, kcalByDay, today),
+    report: report(req.user, weights, kcalByDay, today, burnedByDay),
     weights: weights.map((w) => ({ id: w.id, day: w.day, weightKg: w.weightKg, note: w.note })),
     bmi: bmiSeries(weights, req.user.heightCm, weights[0]?.day && weights[0].day > from ? weights[0].day : from, today),
     daily: days.map((d) => ({ day: d, kcal: kcalByDay[d] || 0, waterMl: waterByDay[d] || 0 })),
@@ -308,14 +320,14 @@ api.post('/menu/generate', wrap(async (req, res) => {
   const level = String(req.body?.level ?? '');
   if (!MENU_LEVELS.includes(level)) throw new HttpError(400, 'Escolha o nível: fácil, médio ou avançado');
   const today = dayKey();
-  const { weights, kcalByDay } = await loadReportData(req.user.id, today);
-  const rep = report(req.user, weights, kcalByDay, today);
+  const { weights, kcalByDay, burnedByDay } = await loadReportData(req.user.id, today);
+  const rep = report(req.user, weights, kcalByDay, today, burnedByDay);
   if (!rep.calorieGoal) throw new HttpError(400, 'Complete o perfil (sexo, nascimento, altura e peso) para calcularmos sua meta de calorias.');
   const now = Date.now();
   const hits = (aiRate.get(req.user.id) || []).filter((t) => now - t < 60000);
   if (hits.length >= 10) throw new HttpError(429, 'Muitas análises seguidas. Aguarde um minuto.');
   aiRate.set(req.user.id, [...hits, now]);
-  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg }));
+  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg, mode: rep.goalMode, proteinG: rep.proteinGoalG }));
 }));
 
 api.post('/meals', wrap(async (req, res) => {

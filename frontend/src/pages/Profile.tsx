@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Camera, Check, CheckCircle2, KeyRound, LogOut, Trash2 } from 'lucide-react';
-import { api, useApi, type Summary, type User } from '../api';
+import { api, useApi, type GoalMode, type Summary, type User } from '../api';
 import { useAuth } from '../auth';
 import { Avatar, ErrorBox, PageHeader } from '../ui';
 import { avatarFromFile } from '../photo';
@@ -131,6 +131,13 @@ function LookCard({ user }: { user: User }) {
 
 const str = (v: number | null | undefined) => (v == null ? '' : String(v).replace('.', ','));
 
+const STRATEGY: Record<string, string> = { deficit: 'para emagrecer', superavit: 'para ganhar massa', recomposicao: 'de recomposição (manutenção)', manter: 'de manutenção' };
+
+const GOAL_MODES: { id: GoalMode; label: string; hint: string }[] = [
+  { id: 'emagrecer', label: 'Perder peso', hint: 'Déficit de 20% do gasto diário (300–750 kcal, ≈ 0,3–0,7 kg por semana) e 1,8 g de proteína por kg para preservar os músculos.' },
+  { id: 'massa', label: 'Ganhar massa magra', hint: 'Superávit leve de 10% do gasto (200–400 kcal) e 2 g de proteína por kg, junto com treino de força. Com IMC a partir de 27, fica nas calorias de manutenção (recomposição corporal).' },
+];
+
 function PersonalForm({ user }: { user: User }) {
   const { setUser } = useAuth();
   const summary = useApi<Summary>('/summary');
@@ -140,6 +147,9 @@ function PersonalForm({ user }: { user: User }) {
     birthDate: user.birthDate ?? '',
     heightCm: str(user.heightCm),
     goalWeightKg: str(user.goalWeightKg),
+    goalMode: user.goalMode || 'emagrecer',
+    wakeTime: user.wakeTime || '07:00',
+    sleepTime: user.sleepTime || '23:00',
     activity: user.activity,
     autoCalories: user.calorieGoal == null,
     calorieGoal: str(user.calorieGoal),
@@ -167,6 +177,9 @@ function PersonalForm({ user }: { user: User }) {
         birthDate: f.birthDate || null,
         heightCm: parseNum(f.heightCm),
         goalWeightKg: parseNum(f.goalWeightKg),
+        goalMode: f.goalMode,
+        wakeTime: f.wakeTime,
+        sleepTime: f.sleepTime,
         activity: f.activity,
         calorieGoal: f.autoCalories ? null : parseNum(f.calorieGoal),
         waterGoalMl: parseNum(f.waterGoalMl),
@@ -216,9 +229,32 @@ function PersonalForm({ user }: { user: User }) {
           <input id="p-goal" className="input" inputMode="decimal" placeholder="ex.: 70" value={f.goalWeightKg} onChange={(e) => set({ goalWeightKg: e.target.value })} />
         </div>
       </div>
+      <div>
+        <span className="label">Objetivo</span>
+        <div className="grid grid-cols-2 gap-2">
+          {GOAL_MODES.map((g) => (
+            <button key={g.id} type="button" aria-pressed={f.goalMode === g.id} onClick={() => set({ goalMode: g.id })} className={`min-h-11 rounded-xl px-2 text-sm font-semibold ${f.goalMode === g.id ? 'bg-brand text-white' : 'bg-tint text-soft'}`}>
+              {g.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted">{GOAL_MODES.find((g) => g.id === f.goalMode)?.hint}</p>
+      </div>
       <p className="rounded-xl bg-tint p-3 text-xs text-muted">
         Peso atual: <b className="text-ink">{r?.weightKg != null ? `${String(r.weightKg).replace('.', ',')} kg` : 'sem pesagem'}</b> — registre o peso na tela Progresso (uma vez por semana).
       </p>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="label" htmlFor="p-wake">Acordo às</label>
+          <input id="p-wake" type="time" className="input" value={f.wakeTime} onChange={(e) => e.target.value && set({ wakeTime: e.target.value })} />
+        </div>
+        <div>
+          <label className="label" htmlFor="p-sleep">Durmo às</label>
+          <input id="p-sleep" type="time" className="input" value={f.sleepTime} onChange={(e) => e.target.value && set({ sleepTime: e.target.value })} />
+        </div>
+        <p className="col-span-2 -mt-2 text-xs text-muted">Usados para sugerir os melhores horários das refeições.</p>
+      </div>
 
       <div>
         <label className="label" htmlFor="p-activity">Nível de atividade</label>
@@ -247,7 +283,7 @@ function PersonalForm({ user }: { user: User }) {
         </div>
         <p className="mt-1 text-xs text-muted">
           {r?.tdee
-            ? `Metabolismo basal ${n0(r.bmr!)} kcal · gasto diário ≈ ${n0(r.tdee)} kcal${r.goalCalories ? ` · meta para ${r.goalCalories > r.tdee! ? 'ganhar' : 'emagrecer'}: ${n0(r.goalCalories)} kcal/dia` : ''}.`
+            ? `Metabolismo basal ${n0(r.bmr!)} kcal · gasto diário ≈ ${n0(r.tdee)} kcal${r.goalCalories ? ` · meta ${STRATEGY[r.strategy ?? 'manter']}: ${n0(r.goalCalories)} kcal/dia` : ''}${r.proteinGoalG ? ` · proteína ≈ ${n0(r.proteinGoalG)} g/dia` : ''}.`
             : 'Preencha sexo, nascimento, altura e registre o peso para calcularmos a meta.'}
         </p>
         {!f.autoCalories && (

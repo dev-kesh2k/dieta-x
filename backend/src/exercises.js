@@ -1,7 +1,7 @@
 /**
  * Desafios de exercícios para fazer em casa, sem equipamento, em níveis de dificuldade.
  * Gasto estimado pelo MET (Compendium of Physical Activities):
- * kcal = MET × 3,5 × peso (kg) ÷ 200 × minutos. O tempo inclui os descansos entre as séries.
+ * kcal = (MET − 1) × 3,5 × peso (kg) ÷ 200 × minutos (gasto líquido, sem o repouso que já está no TDEE). O tempo inclui os descansos entre as séries.
  * Um nível libera o seguinte quando todos os desafios dele são cumpridos em UNLOCK_DAYS dias.
  */
 export const UNLOCK_DAYS = 3;
@@ -77,7 +77,8 @@ const ALL = LEVELS.flatMap((l) => l.exercises.map((e) => ({ ...e, level: l.level
 export const findExercise = (id) => ALL.find((e) => e.id === id) || null;
 
 export function exerciseKcal(exercise, weightKg) {
-  return Math.max(1, Math.round((exercise.met * 3.5 * (weightKg || DEFAULT_WEIGHT_KG) * exercise.minutes) / 200));
+  // Gasto líquido (MET − 1): o gasto de repouso já está no TDEE e não pode ser descontado duas vezes.
+  return Math.max(1, Math.round(((exercise.met - 1) * 3.5 * (weightKg || DEFAULT_WEIGHT_KG) * exercise.minutes) / 200));
 }
 
 /**
