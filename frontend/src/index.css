@@ -25,6 +25,8 @@ body,
   --tint: 243 250 247;
   --track: 230 242 236;
   --bar: 15 42 34;
+  --logo-a: 52 211 153;
+  --logo-b: 4 120 87;
   color-scheme: light;
 }
 html[data-theme='oceano'] {
@@ -42,6 +44,8 @@ html[data-theme='oceano'] {
   --tint: 242 248 252;
   --track: 227 238 246;
   --bar: 15 34 51;
+  --logo-a: 56 189 248;
+  --logo-b: 3 105 161;
 }
 html[data-theme='lavanda'] {
   --brand: 124 58 237;
@@ -58,6 +62,8 @@ html[data-theme='lavanda'] {
   --tint: 247 245 253;
   --track: 235 231 247;
   --bar: 30 24 56;
+  --logo-a: 167 139 250;
+  --logo-b: 109 40 217;
 }
 html[data-theme='rosa'] {
   --brand: 219 39 119;
@@ -74,6 +80,8 @@ html[data-theme='rosa'] {
   --tint: 253 244 248;
   --track: 246 230 238;
   --bar: 58 20 38;
+  --logo-a: 255 45 135;
+  --logo-b: 255 106 61;
 }
 html[data-theme='escuro'] {
   --brand: 16 185 129;
@@ -92,6 +100,8 @@ html[data-theme='escuro'] {
   --track: 34 48 43;
   --bar: 27 38 34;
   color-scheme: dark;
+  --logo-a: 16 185 129;
+  --logo-b: 6 78 59;
 }
 html[data-theme='noite'] {
   --brand: 99 102 241;
@@ -110,6 +120,8 @@ html[data-theme='noite'] {
   --track: 37 41 68;
   --bar: 26 29 52;
   color-scheme: dark;
+  --logo-a: 129 140 248;
+  --logo-b: 55 48 163;
 }
 
 /* Temas escuros: os tons pastel fixos (avisos, água, exercícios) viram versões translúcidas. */

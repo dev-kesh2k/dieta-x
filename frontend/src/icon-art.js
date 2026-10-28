@@ -1,0 +1,23 @@
+/**
+ * Arte do ícone do app (SVG). a/b: cores do degradê (topo/base); id: id único do degradê;
+ * square: sem cantos arredondados (ícone da Tela de Início do iPhone, que arredonda sozinho).
+ */
+export function iconSvg([a, b], id = 'g', square = false) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse"><stop offset="0" style="stop-color:${a}"/><stop offset="1" style="stop-color:${b}"/></linearGradient></defs>
+<rect width="512" height="512" rx="${square ? 0 : 115}" fill="url(#${id})"/>
+<circle cx="266" cy="272" r="176" fill="#000" opacity=".14"/>
+<circle cx="256" cy="256" r="176" fill="#fff"/>
+<circle cx="256" cy="256" r="130" fill="#f2f4f7" stroke="#e4e8ed" stroke-width="5"/>
+<g transform="rotate(18 200 262)" fill="url(#${id})">
+<rect x="168" y="128" width="13" height="70" rx="6.5"/><rect x="193.5" y="128" width="13" height="70" rx="6.5"/><rect x="219" y="128" width="13" height="70" rx="6.5"/>
+<path d="M168 182h64v10c0 19-14 33-32 33s-32-14-32-33z"/>
+<rect x="190" y="215" width="20" height="170" rx="10"/>
+</g>
+<g transform="rotate(-16 318 262)" fill="url(#${id})">
+<path d="M306 124c44 26 54 100 38 156h-38z"/>
+<rect x="304" y="270" width="24" height="114" rx="12"/>
+</g>
+</svg>
+`;
+}

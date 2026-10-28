@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { iconSvg } from './icon-art.js';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { AlertCircle, ChefHat, ChevronRight, Dumbbell, Home, LineChart, Loader2, Shield, Trophy, User, Utensils, X } from 'lucide-react';
 import { useAuth } from './auth';
@@ -36,8 +37,11 @@ export function Avatar({ name, src, size = 36, className = '' }: { name?: string
   );
 }
 
+/** Ícone do app desenhado na tela: o degradê segue o tema (--logo-a/--logo-b em index.css). */
 export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
-  return <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className={`${className} shrink-0 rounded-xl`} />;
+  const id = `logo${useId().replace(/:/g, '')}`;
+  const svg = useMemo(() => iconSvg(['rgb(var(--logo-a))', 'rgb(var(--logo-b))'], id), [id]);
+  return <span aria-hidden="true" className={`${className} block shrink-0 [&>svg]:h-full [&>svg]:w-full`} dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
 /** Menu lateral no desktop, barra inferior no celular. */
