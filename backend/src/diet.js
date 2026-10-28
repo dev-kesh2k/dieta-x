@@ -3,6 +3,7 @@ import { addDays, dayKey, diffDays } from './db.js';
 export const MEAL_TYPES = ['cafe', 'lanche_manha', 'almoco', 'lanche_tarde', 'jantar', 'ceia', 'outro'];
 export const ACTIVITY = { sedentario: 1.2, leve: 1.375, moderado: 1.55, intenso: 1.725, atleta: 1.9 };
 export const KCAL_PER_KG = 7700;
+export const GOAL_MODES = ['emagrecer', 'massa'];
 
 const r1 = (n) => Math.round(n * 10) / 10;
 
@@ -38,8 +39,15 @@ export function energy(user, weightKg, day = dayKey()) {
   const tdee = Math.round(bmr * (ACTIVITY[user.activity] || ACTIVITY.leve));
   let suggested = tdee;
   let goalCalories = null;
+  // Proteína diária: 2 g/kg para ganhar massa magra, 1,6 g/kg para preservar músculo no déficit.
+  const proteinGoalG = Math.round(weightKg * (user.goalMode === 'massa' ? 2 : 1.6));
 
-  if (user.goalWeightKg) {
+  if (user.goalMode === 'massa') {
+    // Massa magra: superávit leve de 300 kcal/dia; com a meta de peso atingida, manter o TDEE.
+    const reached = user.goalWeightKg && weightKg >= user.goalWeightKg;
+    suggested = reached ? tdee : tdee + 300;
+    goalCalories = suggested;
+  } else if (user.goalWeightKg) {
     const diff = weightKg - user.goalWeightKg;
     if (diff > 0.5) {
       // Emagrecer: déficit moderado de 500 kcal/dia (0,5 kg/semana)
@@ -55,7 +63,7 @@ export function energy(user, weightKg, day = dayKey()) {
     }
   }
 
-  return { bmr, tdee, suggested, goalCalories };
+  return { bmr, tdee, suggested, goalCalories, proteinGoalG };
 }
 
 /** Último peso registrado até o dia (pesos ordenados por dia crescente). */
@@ -152,6 +160,8 @@ export function report(user, weights, kcalByDay, today = dayKey()) {
     tdee: en?.tdee ?? null,
     suggestedCalories: en?.suggested ?? null,
     goalCalories: en?.goalCalories ?? null,
+    proteinGoalG: en?.proteinGoalG ?? null,
+    goalMode: user.goalMode || 'emagrecer',
     calorieGoal,
     waterGoalMl: user.waterGoalMl,
     week: { refDay: ref && latest && ref.id !== latest.id ? ref.day : null, lostKg: lostLastWeek, avgKcal, daysLogged: logged.length },

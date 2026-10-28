@@ -18,6 +18,7 @@ model User {
   birthDate     String?
   heightCm      Float?
   goalWeightKg  Float?
+  goalMode      String        @default("emagrecer")
   activity      String        @default("leve")
   calorieGoal   Int?
   waterGoalMl   Int           @default(2500)
