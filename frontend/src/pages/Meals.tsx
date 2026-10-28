@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Camera, ChevronLeft, ChevronRight, History, Loader2, Pencil, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, Clock, History, Loader2, Pencil, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
 import { photoToDataUrl } from '../photo';
 import { api, useApi, type Estimate, type Meal, type MealItem } from '../api';
 import { useAuth } from '../auth';
 import { Empty, ErrorBox, Loading, PageHeader, Sheet } from '../ui';
-import { MEAL_TYPES, dateLong, mealByHour, mealLabel, n0, n1, parseNum, shiftDay, todayKey } from '../util';
+import { MEAL_TYPES, dateLong, fmtMin, mealByHour, mealBySchedule, mealLabel, mealSchedule, n0, n1, parseNum, shiftDay, todayKey, type MealSlot } from '../util';
 
 interface Draft {
   id?: string;
@@ -19,7 +19,7 @@ interface Draft {
   source: 'ia' | 'manual';
 }
 
-const blank = (): Draft => ({ type: mealByHour(), description: '', kcal: '', proteinG: '', carbsG: '', fatG: '', items: [], source: 'manual' });
+const blank = (type = mealByHour()): Draft => ({ type, description: '', kcal: '', proteinG: '', carbsG: '', fatG: '', items: [], source: 'manual' });
 const fromMeal = (m: Meal, keepId: boolean): Draft => ({
   id: keepId ? m.id : undefined,
   type: keepId ? m.type : mealByHour(),
@@ -32,6 +32,46 @@ const fromMeal = (m: Meal, keepId: boolean): Draft => ({
   source: m.source,
 });
 
+/** Melhores horários do dia pela rotina de sono do perfil; destaca a refeição da vez e marca as já registradas. */
+function MealTimes({ slots, done, isToday, massa }: { slots: MealSlot[]; done: Set<string>; isToday: boolean; massa: boolean }) {
+  const now = new Date();
+  const current = isToday ? mealBySchedule(slots, now) : null;
+  return (
+    <section className="card mb-4 !p-3">
+      <h2 className="mb-2 flex items-center gap-2 text-sm font-bold">
+        <Clock size={16} className="text-brand" /> Melhores horários
+      </h2>
+      <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+        {slots.map((sl) => {
+          const ok = done.has(sl.id);
+          const active = !ok && sl.id === current;
+          return (
+            <li
+              key={sl.id}
+              title={sl.tip}
+              className={`rounded-xl px-2.5 py-1.5 text-xs ${active ? 'bg-brand text-white' : ok ? 'bg-brand-light text-brand-dark' : 'bg-tint text-soft'}`}
+            >
+              <span className="flex items-center gap-1 font-semibold">
+                {ok && <Check size={12} strokeWidth={3} />}
+                {sl.label}
+                {sl.optional && <span className="font-normal opacity-70">(opcional)</span>}
+              </span>
+              <span className="block">
+                {fmtMin(sl.from)}–{fmtMin(sl.to)}
+                {active ? ' · agora' : ''}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-2 text-xs text-muted">
+        {slots.find((sl) => sl.id === current)?.tip ?? 'Intervalos de 3–4 h, mais calorias no café e no almoço e jantar até 3 h antes de dormir.'}
+        {massa ? ' Para ganhar massa: 20–40 g de proteína em cada refeição.' : ''} Ajuste seus horários de sono no Perfil.
+      </p>
+    </section>
+  );
+}
+
 export default function Meals() {
   const [params, setParams] = useSearchParams();
   const today = todayKey();
@@ -40,11 +80,14 @@ export default function Meals() {
   const ai = useApi<{ configured: boolean }>('/ai/status');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [recentOpen, setRecentOpen] = useState(false);
+  const { user } = useAuth();
+  const slots = mealSchedule(user?.wakeTime, user?.sleepTime);
+  const newDraft = () => blank(mealBySchedule(slots));
 
   // Atalho "Adicionar refeição" vindo da tela Hoje.
   useEffect(() => {
     if (params.get('novo')) {
-      setDraft(blank());
+      setDraft(newDraft());
       params.delete('novo');
       setParams(params, { replace: true });
     }
@@ -77,7 +120,7 @@ export default function Meals() {
         title="Refeições"
         subtitle="Descreva o que comeu e a IA calcula"
         action={
-          <button className="btn-primary hidden sm:inline-flex" onClick={() => setDraft(blank())}>
+          <button className="btn-primary hidden sm:inline-flex" onClick={() => setDraft(newDraft())}>
             <Plus size={18} /> Nova refeição
           </button>
         }
@@ -98,7 +141,7 @@ export default function Meals() {
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-2 sm:hidden">
-        <button className="btn-primary" onClick={() => setDraft(blank())}>
+        <button className="btn-primary" onClick={() => setDraft(newDraft())}>
           <Plus size={18} /> Nova
         </button>
         <button className="btn-ghost" onClick={() => setRecentOpen(true)}>
@@ -110,6 +153,8 @@ export default function Meals() {
           <History size={18} /> Repetir refeição recente
         </button>
       </div>
+
+      <MealTimes slots={slots} done={new Set(meals.map((m) => m.type))} isToday={day === today} massa={user?.goalMode === 'massa'} />
 
       {ai.data && !ai.data.configured && (
         <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -123,7 +168,7 @@ export default function Meals() {
         <ErrorBox message={error} onRetry={reload} />
       ) : groups.length === 0 ? (
         <Empty icon={<Utensils size={36} />} text={day === today ? 'Nenhuma refeição registrada hoje.' : 'Nenhuma refeição neste dia.'}>
-          <button className="btn-primary" onClick={() => setDraft(blank())}>
+          <button className="btn-primary" onClick={() => setDraft(newDraft())}>
             <Plus size={18} /> Adicionar refeição
           </button>
         </Empty>
