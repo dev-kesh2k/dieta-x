@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
-import { ACTIVITY, MEAL_TYPES, bmiSeries, report } from './diet.js';
+import { ACTIVITY, GOAL_MODES, MEAL_TYPES, bmiSeries, report } from './diet.js';
 import { LEVELS, UNLOCK_DAYS, exerciseKcal, findExercise, levelProgress } from './exercises.js';
 import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, parseImages, saveModel, testAi } from './ai.js';
 
@@ -90,6 +90,10 @@ api.put('/me', wrap(async (req, res) => {
   }
   if (b.heightCm !== undefined) data.heightCm = num(b.heightCm, 'a altura (cm)', 100, 250, { optional: true });
   if (b.goalWeightKg !== undefined) data.goalWeightKg = num(b.goalWeightKg, 'o peso meta (kg)', 30, 300, { optional: true });
+  if (b.goalMode !== undefined) {
+    if (!GOAL_MODES.includes(b.goalMode)) throw new HttpError(400, 'Objetivo inválido');
+    data.goalMode = b.goalMode;
+  }
   if (b.activity !== undefined) {
     if (!(b.activity in ACTIVITY)) throw new HttpError(400, 'Nível de atividade inválido');
     data.activity = b.activity;
@@ -315,7 +319,7 @@ api.post('/menu/generate', wrap(async (req, res) => {
   const hits = (aiRate.get(req.user.id) || []).filter((t) => now - t < 60000);
   if (hits.length >= 10) throw new HttpError(429, 'Muitas análises seguidas. Aguarde um minuto.');
   aiRate.set(req.user.id, [...hits, now]);
-  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg }));
+  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg, mode: rep.goalMode, proteinG: rep.proteinGoalG }));
 }));
 
 api.post('/meals', wrap(async (req, res) => {

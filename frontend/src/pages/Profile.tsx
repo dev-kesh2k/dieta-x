@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Camera, Check, CheckCircle2, KeyRound, LogOut, Trash2 } from 'lucide-react';
-import { api, useApi, type Summary, type User } from '../api';
+import { api, useApi, type GoalMode, type Summary, type User } from '../api';
 import { useAuth } from '../auth';
 import { Avatar, ErrorBox, PageHeader } from '../ui';
 import { avatarFromFile } from '../photo';
@@ -131,6 +131,11 @@ function LookCard({ user }: { user: User }) {
 
 const str = (v: number | null | undefined) => (v == null ? '' : String(v).replace('.', ','));
 
+const GOAL_MODES: { id: GoalMode; label: string; hint: string }[] = [
+  { id: 'emagrecer', label: 'Perder peso', hint: 'Déficit de 500 kcal/dia (≈ 0,5 kg por semana) e proteína para preservar os músculos.' },
+  { id: 'massa', label: 'Ganhar massa magra', hint: 'Superávit leve de 300 kcal/dia e 2 g de proteína por kg, junto com treino de força.' },
+];
+
 function PersonalForm({ user }: { user: User }) {
   const { setUser } = useAuth();
   const summary = useApi<Summary>('/summary');
@@ -140,6 +145,7 @@ function PersonalForm({ user }: { user: User }) {
     birthDate: user.birthDate ?? '',
     heightCm: str(user.heightCm),
     goalWeightKg: str(user.goalWeightKg),
+    goalMode: user.goalMode || 'emagrecer',
     activity: user.activity,
     autoCalories: user.calorieGoal == null,
     calorieGoal: str(user.calorieGoal),
@@ -167,6 +173,7 @@ function PersonalForm({ user }: { user: User }) {
         birthDate: f.birthDate || null,
         heightCm: parseNum(f.heightCm),
         goalWeightKg: parseNum(f.goalWeightKg),
+        goalMode: f.goalMode,
         activity: f.activity,
         calorieGoal: f.autoCalories ? null : parseNum(f.calorieGoal),
         waterGoalMl: parseNum(f.waterGoalMl),
@@ -216,6 +223,17 @@ function PersonalForm({ user }: { user: User }) {
           <input id="p-goal" className="input" inputMode="decimal" placeholder="ex.: 70" value={f.goalWeightKg} onChange={(e) => set({ goalWeightKg: e.target.value })} />
         </div>
       </div>
+      <div>
+        <span className="label">Objetivo</span>
+        <div className="grid grid-cols-2 gap-2">
+          {GOAL_MODES.map((g) => (
+            <button key={g.id} type="button" aria-pressed={f.goalMode === g.id} onClick={() => set({ goalMode: g.id })} className={`min-h-11 rounded-xl px-2 text-sm font-semibold ${f.goalMode === g.id ? 'bg-brand text-white' : 'bg-tint text-soft'}`}>
+              {g.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted">{GOAL_MODES.find((g) => g.id === f.goalMode)?.hint}</p>
+      </div>
       <p className="rounded-xl bg-tint p-3 text-xs text-muted">
         Peso atual: <b className="text-ink">{r?.weightKg != null ? `${String(r.weightKg).replace('.', ',')} kg` : 'sem pesagem'}</b> — registre o peso na tela Progresso (uma vez por semana).
       </p>
@@ -247,7 +265,7 @@ function PersonalForm({ user }: { user: User }) {
         </div>
         <p className="mt-1 text-xs text-muted">
           {r?.tdee
-            ? `Metabolismo basal ${n0(r.bmr!)} kcal · gasto diário ≈ ${n0(r.tdee)} kcal${r.goalCalories ? ` · meta para ${r.goalCalories > r.tdee! ? 'ganhar' : 'emagrecer'}: ${n0(r.goalCalories)} kcal/dia` : ''}.`
+            ? `Metabolismo basal ${n0(r.bmr!)} kcal · gasto diário ≈ ${n0(r.tdee)} kcal${r.goalCalories ? ` · meta para ${r.goalMode === 'massa' ? 'ganhar massa magra' : r.goalCalories > r.tdee! ? 'ganhar' : 'emagrecer'}: ${n0(r.goalCalories)} kcal/dia` : ''}${r.proteinGoalG ? ` · proteína ≈ ${n0(r.proteinGoalG)} g/dia` : ''}.`
             : 'Preencha sexo, nascimento, altura e registre o peso para calcularmos a meta.'}
         </p>
         {!f.autoCalories && (

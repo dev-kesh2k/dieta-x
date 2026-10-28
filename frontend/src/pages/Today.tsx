@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Dumbbell, Flame, Plus, Scale, TrendingDown, UserCog } from 'lucide-react';
+import { ChevronRight, Dumbbell, Flame, Plus, Scale, TrendingDown, TrendingUp, UserCog } from 'lucide-react';
 import { useApi, type Summary } from '../api';
 import { useAuth } from '../auth';
 import { Bar, ErrorBox, Loading, PageHeader, Ring } from '../ui';
@@ -143,7 +143,7 @@ export default function Today() {
         </section>
 
         <Link to="/progresso" className="card flex items-center gap-3 transition hover:border-brand">
-          <TrendingDown size={22} className="shrink-0 text-brand" />
+          {r.goalMode === 'massa' ? <TrendingUp size={22} className="shrink-0 text-brand" /> : <TrendingDown size={22} className="shrink-0 text-brand" />}
           <div className="min-w-0 flex-1 text-sm">
             <p className="font-bold">Semana</p>
             <p className="text-muted">
