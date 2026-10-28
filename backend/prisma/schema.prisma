@@ -46,6 +46,8 @@ model Meal {
   carbsG      Float    @default(0)
   fatG        Float    @default(0)
   sugarG      Float    @default(0)
+  fiberG      Float    @default(0)
+  sodiumMg    Int      @default(0)
   items       Json     @default("[]")
   source      String   @default("manual")
   createdAt   DateTime @default(now())
