@@ -33,6 +33,10 @@ export default function Today() {
     { label: 'Gordura', value: totals.fatG, goal: fat, color: 'bg-violet-400' },
     // Açúcares totais (naturais + adicionados): limite de referência da UE de 90 g para 2.000 kcal, proporcional à meta.
     { label: 'Açúcar', value: totals.sugarG ?? 0, goal: goal ? (goal * 90) / 2000 : null, color: 'bg-pink-400', limit: true },
+    // Fibra: meta de 14 g por 1.000 kcal (Dietary Guidelines / IOM).
+    { label: 'Fibra', value: totals.fiberG ?? 0, goal: goal ? (goal * 14) / 1000 : null, color: 'bg-lime-500' },
+    // Sódio: limite da OMS de 2.000 mg/dia (≈ 5 g de sal).
+    { label: 'Sódio', value: totals.sodiumMg ?? 0, goal: 2000, color: 'bg-slate-400', limit: true, unit: 'mg' },
   ];
 
   return (
@@ -94,8 +98,8 @@ export default function Today() {
                         {'limit' in m && <span className="font-normal text-muted"> (limite)</span>}
                       </span>
                       <span className="text-muted">
-                        {n1(m.value)}
-                        {m.goal ? ` / ${n0(m.goal)}` : ''} g
+                        {'unit' in m ? n0(m.value) : n1(m.value)}
+                        {m.goal ? ` / ${n0(m.goal)}` : ''} {'unit' in m ? m.unit : 'g'}
                       </span>
                     </div>
                     <Bar value={m.goal ? m.value / m.goal : 0} color={'limit' in m && m.goal && m.value > m.goal ? 'bg-red-500' : m.color} />
