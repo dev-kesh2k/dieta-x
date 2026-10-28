@@ -87,6 +87,8 @@ export interface User {
   heightCm: number | null;
   goalWeightKg: number | null;
   goalMode: GoalMode;
+  wakeTime: string;
+  sleepTime: string;
   activity: string;
   calorieGoal: number | null;
   waterGoalMl: number;
@@ -143,6 +145,7 @@ export interface Report {
   suggestedCalories: number | null;
   goalCalories: number | null;
   proteinGoalG: number | null;
+  strategy: 'deficit' | 'superavit' | 'recomposicao' | 'manter' | null;
   goalMode: GoalMode;
   calorieGoal: number | null;
   waterGoalMl: number;
