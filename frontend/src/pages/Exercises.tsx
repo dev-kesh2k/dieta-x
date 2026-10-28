@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Check, Dumbbell, Flame, Info, Lock, Trophy } from 'lucide-react';
+import { Check, Dumbbell, Flame, Info, Lock, Timer, Trophy } from 'lucide-react';
 import { api, useApi, type ExerciseDay } from '../api';
 import { Bar, ErrorBox, Loading, PageHeader } from '../ui';
 import { kg, n0, todayKey } from '../util';
+import { ExerciseTimer, timedPlan } from './ExerciseTimer';
 
 /** Exercícios em casa por nível: cada desafio cumprido desconta o gasto estimado das calorias do dia. */
 export default function Exercises() {
@@ -12,6 +13,7 @@ export default function Exercises() {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  const [timer, setTimer] = useState<string | null>(null);
 
   // Abre no nível mais alto já liberado.
   useEffect(() => {
@@ -137,6 +139,15 @@ export default function Exercises() {
                       <p className="truncate text-sm font-semibold">{e.name}</p>
                       <p className="truncate text-xs text-muted">{/minuto/.test(e.dose) ? e.dose : `${e.dose} · ~${e.minutes} min`}</p>
                     </button>
+                    {timedPlan(e.dose) && !locked && (
+                      <button
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600 transition active:scale-95"
+                        onClick={() => setTimer(e.id)}
+                        aria-label={`Cronômetro: ${e.name}`}
+                      >
+                        <Timer size={18} />
+                      </button>
+                    )}
                     <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-xs font-bold ${ok ? 'bg-orange-500 text-white' : 'bg-tint text-muted'}`}>
                       {ok ? `−${n0(e.kcal)}` : `≈ ${n0(e.kcal)}`} kcal
                     </span>
@@ -148,11 +159,19 @@ export default function Exercises() {
           </ul>
         </section>
 
+        {(() => {
+          const e = timer ? current.exercises.find((x) => x.id === timer) : null;
+          const plan = e && timedPlan(e.dose);
+          return e && plan ? (
+            <ExerciseTimer name={e.name} tip={e.tip} plan={plan} onClose={() => setTimer(null)} onFinish={() => !e.entryId && toggle(e.id, null)} />
+          ) : null;
+        })()}
+
         <p className="flex items-start gap-1.5 px-1 text-[11px] text-muted">
           <Info size={13} className="mt-px shrink-0" />
           {data.weightKg
-            ? `Gasto estimado para ${kg(data.weightKg)} pela intensidade (MET) e o tempo de cada exercício. Toque no nome para ver como fazer.`
-            : 'Gasto estimado para 70 kg; registre seu peso para um cálculo mais preciso. Toque no nome para ver como fazer.'}
+            ? `Gasto estimado para ${kg(data.weightKg)} pela intensidade (MET) e o tempo de cada exercício. Toque no nome para ver como fazer e no relógio para o cronômetro.`
+            : 'Gasto estimado para 70 kg; registre seu peso para um cálculo mais preciso. Toque no nome para ver como fazer e no relógio para o cronômetro.'}
         </p>
       </div>
     </>
