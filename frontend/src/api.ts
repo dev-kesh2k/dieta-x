@@ -105,6 +105,7 @@ export interface MealItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
 }
 
 export interface Meal {
@@ -116,6 +117,7 @@ export interface Meal {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
   items: MealItem[];
   source: 'ia' | 'manual';
   createdAt: string;
@@ -127,6 +129,7 @@ export interface Estimate {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
   notes: string;
   model: string;
 }
@@ -158,7 +161,7 @@ export interface Report {
 export interface Summary {
   day: string;
   report: Report;
-  totals: { kcal: number; proteinG: number; carbsG: number; fatG: number };
+  totals: { kcal: number; proteinG: number; carbsG: number; fatG: number; sugarG: number };
   meals: number;
   waterMl: number;
   exercise: { kcal: number; done: number };
