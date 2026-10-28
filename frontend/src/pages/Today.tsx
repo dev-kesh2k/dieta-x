@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Dumbbell, Flame, Plus, Scale, TrendingDown, UserCog } from 'lucide-react';
+import { ChevronRight, Dumbbell, Flame, Plus, Scale, TrendingDown, TrendingUp, UserCog } from 'lucide-react';
 import { useApi, type Summary } from '../api';
 import { useAuth } from '../auth';
 import { Bar, ErrorBox, Loading, PageHeader, Ring } from '../ui';
@@ -24,11 +24,13 @@ export default function Today() {
   const burned = data.exercise?.kcal ?? 0;
   const net = Math.max(0, totals.kcal - burned);
   const left = goal != null ? goal - net : null;
-  // Metas de macros a partir da meta calórica: 30% proteína, 45% carboidrato, 25% gordura.
+  // Metas de macros: proteína em g/kg (do resumo), gordura 25% das calorias e o restante em carboidrato.
+  const protein = goal ? (r.proteinGoalG ?? (goal * 0.3) / 4) : null;
+  const fat = goal ? (goal * 0.25) / 9 : null;
   const macros = [
-    { label: 'Proteína', value: totals.proteinG, goal: goal ? (goal * 0.3) / 4 : null, color: 'bg-rose-400' },
-    { label: 'Carboidrato', value: totals.carbsG, goal: goal ? (goal * 0.45) / 4 : null, color: 'bg-amber-400' },
-    { label: 'Gordura', value: totals.fatG, goal: goal ? (goal * 0.25) / 9 : null, color: 'bg-violet-400' },
+    { label: 'Proteína', value: totals.proteinG, goal: protein, color: 'bg-rose-400' },
+    { label: 'Carboidrato', value: totals.carbsG, goal: goal ? Math.max(0, (goal - protein! * 4 - fat! * 9) / 4) : null, color: 'bg-amber-400' },
+    { label: 'Gordura', value: totals.fatG, goal: fat, color: 'bg-violet-400' },
   ];
 
   return (
@@ -143,7 +145,7 @@ export default function Today() {
         </section>
 
         <Link to="/progresso" className="card flex items-center gap-3 transition hover:border-brand">
-          <TrendingDown size={22} className="shrink-0 text-brand" />
+          {r.goalMode === 'massa' ? <TrendingUp size={22} className="shrink-0 text-brand" /> : <TrendingDown size={22} className="shrink-0 text-brand" />}
           <div className="min-w-0 flex-1 text-sm">
             <p className="font-bold">Semana</p>
             <p className="text-muted">

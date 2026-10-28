@@ -223,14 +223,17 @@ const MENU_SCHEMA = {
 };
 
 /** Gera o cardápio de um dia, no nível pedido, perto da meta de calorias do usuário. */
-export async function generateMenu({ level, kcal, goalKg, currentKg }) {
+export async function generateMenu({ level, kcal, goalKg, currentKg, mode, proteinG }) {
   const { model, configured } = await aiConfig();
   if (!configured) throw new HttpError(503, 'A IA ainda não está disponível: o servidor precisa estar logado na assinatura Claude ("claude login").');
   const system = `Você é um nutricionista brasileiro que monta cardápios de um dia com alimentos e porções típicos do Brasil (referência TACO).
 Monte 6 refeições (cafe, lanche_manha, almoco, lanche_tarde, jantar, ceia), cada uma com nome, lista de ingredientes com quantidades caseiras e gramas, modo de preparo curto e macros.
-A soma das calorias do dia deve ficar a no máximo 5% da meta informada. Distribua proteína adequada (cerca de 30% das calorias), sem ultrapassar o que é saudável.
+A soma das calorias do dia deve ficar a no máximo 5% da meta informada. ${mode === 'massa'
+    ? `Objetivo: ganhar massa magra (superávit leve, junto com treino de força). Priorize proteína${proteinG ? ` (cerca de ${proteinG} g no dia)` : ''}, distribuída nas refeições, e carboidratos de qualidade perto do treino.`
+    : `Objetivo: perder peso com déficit moderado. Mantenha proteína alta${proteinG ? ` (cerca de ${proteinG} g no dia)` : ''} para preservar os músculos, com vegetais e fibras para saciedade.`}
+Concentre a maior parte das calorias no café e no almoço e deixe o jantar mais leve, pelo menos 3 horas antes de dormir.
 Nível de dificuldade: ${LEVELS[level]}
-Em "tips", escreva em português até duas frases com uma dica para a meta de peso. Responda só com os dados pedidos, sem usar ferramentas.`;
+Em "tips", escreva em português até duas frases com uma dica para o objetivo (${mode === 'massa' ? 'ganhar massa magra' : 'perder peso'}). Responda só com os dados pedidos, sem usar ferramentas.`;
   const prompt = `Meta de calorias do dia: ${kcal} kcal.${currentKg && goalKg ? ` Peso atual ${currentKg} kg, peso desejado ${goalKg} kg.` : ''}`;
   const msg = await runClaude({ model, system, schema: MENU_SCHEMA, prompt, timeoutMs: 180_000 });
   const parsed = msg.structured_output;

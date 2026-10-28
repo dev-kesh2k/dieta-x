@@ -3,6 +3,7 @@ import { addDays, dayKey, diffDays } from './db.js';
 export const MEAL_TYPES = ['cafe', 'lanche_manha', 'almoco', 'lanche_tarde', 'jantar', 'ceia', 'outro'];
 export const ACTIVITY = { sedentario: 1.2, leve: 1.375, moderado: 1.55, intenso: 1.725, atleta: 1.9 };
 export const KCAL_PER_KG = 7700;
+export const GOAL_MODES = ['emagrecer', 'massa'];
 
 const r1 = (n) => Math.round(n * 10) / 10;
 
@@ -19,8 +20,10 @@ export function bmi(weightKg, heightCm) {
   return r1(weightKg / (h * h));
 }
 
-export function bmiClass(v) {
+/** Classificação do IMC: OMS para adultos; a partir dos 60 anos, a do SISVAN/Ministério da Saúde (Lipschitz). */
+export function bmiClass(v, age = null) {
   if (v == null) return null;
+  if (age != null && age >= 60) return v < 22 ? 'Abaixo do peso' : v <= 27 ? 'Peso adequado' : 'Sobrepeso';
   if (v < 18.5) return 'Abaixo do peso';
   if (v < 25) return 'Peso normal';
   if (v < 30) return 'Sobrepeso';
@@ -36,26 +39,41 @@ export function energy(user, weightKg, day = dayKey()) {
   const sexAdj = user.sex === 'M' ? 5 : user.sex === 'F' ? -161 : -78;
   const bmr = Math.round(10 * weightKg + 6.25 * user.heightCm - 5 * age + sexAdj);
   const tdee = Math.round(bmr * (ACTIVITY[user.activity] || ACTIVITY.leve));
+  const floor = user.sex === 'M' ? 1500 : 1200;
+  const currentBmi = bmi(weightKg, user.heightCm);
+  // Proteína pelo peso de referência: com obesidade (IMC ≥ 30) o peso atual superestima a necessidade,
+  // então usa o peso equivalente a IMC 25. Perder peso: 1,8 g/kg (preserva massa magra no déficit,
+  // faixa 1,6–2,4); ganhar massa: 2 g/kg (faixa 1,6–2,2, Morton 2018 / ISSN).
+  const refKg = currentBmi != null && currentBmi >= 30 ? 25 * (user.heightCm / 100) ** 2 : weightKg;
+  const proteinGoalG = Math.round(refKg * (user.goalMode === 'massa' ? 2 : 1.8));
+  // Déficit proporcional ao gasto: 20% do TDEE, entre 300 e 750 kcal (≈ 0,3–0,7 kg/semana), nunca abaixo do piso.
+  const deficit = Math.min(750, Math.max(300, Math.round(tdee * 0.2)));
+  // Superávit leve para massa magra: 10% do TDEE, entre 200 e 400 kcal (mais que isso vira gordura).
+  const surplus = Math.min(400, Math.max(200, Math.round(tdee * 0.1)));
   let suggested = tdee;
   let goalCalories = null;
+  let strategy = 'manter';
 
-  if (user.goalWeightKg) {
+  if (user.goalMode === 'massa') {
+    if (user.goalWeightKg && weightKg >= user.goalWeightKg) strategy = 'manter';
+    // Com sobrepeso (IMC ≥ 27) o recomendado é recomposição: calorias de manutenção + proteína alta + treino de força.
+    else if (currentBmi != null && currentBmi >= 27) strategy = 'recomposicao';
+    else strategy = 'superavit';
+    suggested = strategy === 'superavit' ? tdee + surplus : tdee;
+    goalCalories = suggested;
+  } else if (user.goalWeightKg) {
     const diff = weightKg - user.goalWeightKg;
     if (diff > 0.5) {
-      // Emagrecer: déficit moderado de 500 kcal/dia (0,5 kg/semana)
-      suggested = Math.max(tdee - 500, user.sex === 'M' ? 1500 : 1200);
-      goalCalories = suggested;
+      strategy = 'deficit';
+      suggested = Math.max(tdee - deficit, floor);
     } else if (diff < -0.5) {
-      // Ganhar: superávit de 300 kcal/dia (0,3 kg/semana)
-      suggested = tdee + 300;
-      goalCalories = suggested;
-    } else {
-      // Meta atingida: manter o TDEE
-      goalCalories = tdee;
+      strategy = 'superavit';
+      suggested = tdee + surplus;
     }
+    goalCalories = suggested;
   }
 
-  return { bmr, tdee, suggested, goalCalories };
+  return { bmr, tdee, suggested, goalCalories, proteinGoalG, strategy, deficit: tdee - suggested };
 }
 
 /** Último peso registrado até o dia (pesos ordenados por dia crescente). */
@@ -87,7 +105,7 @@ function slope(points) {
  * Resumo do usuário: peso, IMC, metas, semana e previsão.
  * weights: pesos ordenados por dia; kcalByDay: { 'YYYY-MM-DD': kcal }.
  */
-export function report(user, weights, kcalByDay, today = dayKey()) {
+export function report(user, weights, kcalByDay, today = dayKey(), burnedByDay = {}) {
   const latest = weights.at(-1) || null;
   const current = latest?.weightKg ?? null;
   const en = energy(user, current, today);
@@ -104,9 +122,10 @@ export function report(user, weights, kcalByDay, today = dayKey()) {
   const last7 = Array.from({ length: 7 }, (_, i) => addDays(today, -6 + i));
   const logged = last7.filter((d) => kcalByDay[d] > 0);
   const avgKcal = logged.length ? Math.round(logged.reduce((a, d) => a + kcalByDay[d], 0) / logged.length) : null;
+  const avgBurned = logged.length ? Math.round(logged.reduce((a, d) => a + (burnedByDay[d] || 0), 0) / logged.length) : 0;
 
   // Previsão para os próximos 7 dias: balanço energético e tendência das pesagens (últimos 28 dias).
-  const energyChange = en && avgKcal != null ? r1(((avgKcal - en.tdee) * 7) / KCAL_PER_KG) : null;
+  const energyChange = en && avgKcal != null ? r1(((avgKcal - avgBurned - en.tdee) * 7) / KCAL_PER_KG) : null;
   const recent = weights.filter((w) => w.day >= addDays(today, -28)).map((w) => ({ x: diffDays(today, w.day), y: w.weightKg }));
   const s = slope(recent);
   const trendChange = s != null && recent.length >= 2 ? r1(s * 7) : null;
@@ -147,11 +166,14 @@ export function report(user, weights, kcalByDay, today = dayKey()) {
     daysSinceWeigh,
     weighDue: daysSinceWeigh == null || daysSinceWeigh >= 7,
     bmi: currentBmi,
-    bmiClass: bmiClass(currentBmi),
+    bmiClass: bmiClass(currentBmi, ageOn(user.birthDate, today)),
     bmr: en?.bmr ?? null,
     tdee: en?.tdee ?? null,
     suggestedCalories: en?.suggested ?? null,
     goalCalories: en?.goalCalories ?? null,
+    proteinGoalG: en?.proteinGoalG ?? null,
+    strategy: en?.strategy ?? null,
+    goalMode: user.goalMode || 'emagrecer',
     calorieGoal,
     waterGoalMl: user.waterGoalMl,
     week: { refDay: ref && latest && ref.id !== latest.id ? ref.day : null, lostKg: lostLastWeek, avgKcal, daysLogged: logged.length },

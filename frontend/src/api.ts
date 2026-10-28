@@ -75,6 +75,8 @@ export function useApi<T>(path: string | null) {
 }
 
 // ---------- Tipos ----------
+export type GoalMode = 'emagrecer' | 'massa';
+
 export interface User {
   id: string;
   name: string;
@@ -84,6 +86,9 @@ export interface User {
   birthDate: string | null;
   heightCm: number | null;
   goalWeightKg: number | null;
+  goalMode: GoalMode;
+  wakeTime: string;
+  sleepTime: string;
   activity: string;
   calorieGoal: number | null;
   waterGoalMl: number;
@@ -139,6 +144,9 @@ export interface Report {
   tdee: number | null;
   suggestedCalories: number | null;
   goalCalories: number | null;
+  proteinGoalG: number | null;
+  strategy: 'deficit' | 'superavit' | 'recomposicao' | 'manter' | null;
+  goalMode: GoalMode;
   calorieGoal: number | null;
   waterGoalMl: number;
   week: { refDay: string | null; lostKg: number | null; avgKcal: number | null; daysLogged: number };
