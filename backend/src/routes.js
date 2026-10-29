@@ -239,10 +239,9 @@ api.get('/timeline', wrap(async (req, res) => {
     let goalHit = false;
     for (const w of weights.slice(1)) {
       const delta = massa ? w.weightKg - w0 : w0 - w.weightKg;
-      const verb = massa ? 'ganhos' : 'perdidos';
       while (Math.floor(delta) > kgMark) {
         kgMark += 1;
-        if (kgMark <= 5 || kgMark % 5 === 0) milestones.push({ day: w.day, kind: 'weight', title: `${kgMark} kg ${verb}`, text: `Pesagem de ${String(w.weightKg).replace('.', ',')} kg.` });
+        if (kgMark <= 5 || kgMark % 5 === 0) milestones.push({ day: w.day, kind: 'weight', title: `${kgMark} kg ${massa ? 'ganho' : 'perdido'}${kgMark > 1 ? 's' : ''}`, text: `Pesagem de ${String(w.weightKg).replace('.', ',')} kg.` });
       }
       for (const p of [5, 10, 15, 20]) {
         if (!pct.has(p) && delta >= (w0 * p) / 100) {
