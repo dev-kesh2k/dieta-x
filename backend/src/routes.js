@@ -153,10 +153,10 @@ api.get('/summary', wrap(async (req, res) => {
     prisma.exerciseEntry.aggregate({ where: { userId: req.user.id, day }, _sum: { kcal: true }, _count: true }),
   ]);
   const totals = meals.reduce(
-    (a, m) => ({ kcal: a.kcal + m.kcal, proteinG: a.proteinG + m.proteinG, carbsG: a.carbsG + m.carbsG, fatG: a.fatG + m.fatG }),
-    { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+    (a, m) => ({ kcal: a.kcal + m.kcal, proteinG: a.proteinG + m.proteinG, carbsG: a.carbsG + m.carbsG, fatG: a.fatG + m.fatG, sugarG: a.sugarG + m.sugarG, fiberG: a.fiberG + m.fiberG, sodiumMg: a.sodiumMg + m.sodiumMg }),
+    { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, sugarG: 0, fiberG: 0, sodiumMg: 0 },
   );
-  for (const k of ['proteinG', 'carbsG', 'fatG']) totals[k] = Math.round(totals[k] * 10) / 10;
+  for (const k of ['proteinG', 'carbsG', 'fatG', 'sugarG', 'fiberG']) totals[k] = Math.round(totals[k] * 10) / 10;
   // Sequência de dias seguidos com refeição registrada.
   let streak = 0;
   for (let d = kcalByDay[today] ? today : addDays(today, -1); kcalByDay[d]; d = addDays(d, -1)) streak += 1;
@@ -251,6 +251,9 @@ function mealData(b) {
         proteinG: num(i?.proteinG ?? 0, 'a proteína', 0, 1000),
         carbsG: num(i?.carbsG ?? 0, 'o carboidrato', 0, 1000),
         fatG: num(i?.fatG ?? 0, 'a gordura', 0, 1000),
+        sugarG: num(i?.sugarG ?? 0, 'o açúcar', 0, 1000),
+        fiberG: num(i?.fiberG ?? 0, 'a fibra', 0, 1000),
+        sodiumMg: num(i?.sodiumMg ?? 0, 'o sódio', 0, 50000, { int: true }),
       })).filter((i) => i.name)
     : [];
   return {
@@ -261,6 +264,9 @@ function mealData(b) {
     proteinG: num(b.proteinG ?? 0, 'a proteína (g)', 0, 1000),
     carbsG: num(b.carbsG ?? 0, 'o carboidrato (g)', 0, 1000),
     fatG: num(b.fatG ?? 0, 'a gordura (g)', 0, 1000),
+    sugarG: num(b.sugarG ?? 0, 'o açúcar (g)', 0, 1000),
+    fiberG: num(b.fiberG ?? 0, 'a fibra (g)', 0, 1000),
+    sodiumMg: num(b.sodiumMg ?? 0, 'o sódio (mg)', 0, 50000, { int: true }),
     items,
     source: b.source === 'ia' ? 'ia' : 'manual',
   };

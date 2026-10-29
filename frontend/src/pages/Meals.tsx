@@ -15,11 +15,14 @@ interface Draft {
   proteinG: string;
   carbsG: string;
   fatG: string;
+  sugarG: string;
+  fiberG: string;
+  sodiumMg: string;
   items: MealItem[];
   source: 'ia' | 'manual';
 }
 
-const blank = (type = mealByHour()): Draft => ({ type, description: '', kcal: '', proteinG: '', carbsG: '', fatG: '', items: [], source: 'manual' });
+const blank = (type = mealByHour()): Draft => ({ type, description: '', kcal: '', proteinG: '', carbsG: '', fatG: '', sugarG: '', fiberG: '', sodiumMg: '', items: [], source: 'manual' });
 const fromMeal = (m: Meal, keepId: boolean): Draft => ({
   id: keepId ? m.id : undefined,
   type: keepId ? m.type : mealByHour(),
@@ -28,6 +31,9 @@ const fromMeal = (m: Meal, keepId: boolean): Draft => ({
   proteinG: String(m.proteinG).replace('.', ','),
   carbsG: String(m.carbsG).replace('.', ','),
   fatG: String(m.fatG).replace('.', ','),
+  sugarG: String(m.sugarG ?? 0).replace('.', ','),
+  fiberG: String(m.fiberG ?? 0).replace('.', ','),
+  sodiumMg: String(m.sodiumMg ?? 0),
   items: m.items || [],
   source: m.source,
 });
@@ -111,7 +117,7 @@ export default function Meals() {
   };
 
   const meals = data?.meals ?? [];
-  const totals = meals.reduce((a, m) => ({ kcal: a.kcal + m.kcal, p: a.p + m.proteinG, c: a.c + m.carbsG, f: a.f + m.fatG }), { kcal: 0, p: 0, c: 0, f: 0 });
+  const totals = meals.reduce((a, m) => ({ kcal: a.kcal + m.kcal, p: a.p + m.proteinG, c: a.c + m.carbsG, f: a.f + m.fatG, s: a.s + m.sugarG, fi: a.fi + m.fiberG, na: a.na + m.sodiumMg }), { kcal: 0, p: 0, c: 0, f: 0, s: 0, fi: 0, na: 0 });
   const groups = MEAL_TYPES.map((t) => ({ ...t, meals: meals.filter((m) => m.type === t.id) })).filter((g) => g.meals.length);
 
   return (
@@ -132,7 +138,7 @@ export default function Meals() {
         </button>
         <label className="relative min-w-0 flex-1 text-center">
           <span className="block truncate text-sm font-bold first-letter:uppercase">{day === today ? 'Hoje' : dateLong(day)}</span>
-          <span className="block text-xs text-muted">{n0(totals.kcal)} kcal · P {n1(totals.p)} g · C {n1(totals.c)} g · G {n1(totals.f)} g</span>
+          <span className="block text-xs text-muted">{n0(totals.kcal)} kcal · P {n1(totals.p)} g · C {n1(totals.c)} g · G {n1(totals.f)} g · A {n1(totals.s)} g · F {n1(totals.fi)} g · Na {n0(totals.na)} mg</span>
           <input type="date" className="absolute inset-0 cursor-pointer opacity-0" value={day} max={today} onChange={(e) => e.target.value && setDay(e.target.value)} aria-label="Escolher dia" />
         </label>
         <button className="btn-icon disabled:opacity-30" onClick={() => setDay(shiftDay(day, 1))} disabled={day >= today} aria-label="Próximo dia">
@@ -186,7 +192,7 @@ export default function Meals() {
                     <div className="min-w-0 flex-1">
                       <p className="break-words text-sm font-medium">{m.description}</p>
                       <p className="mt-0.5 text-xs text-muted">
-                        <b className="text-ink">{n0(m.kcal)} kcal</b> · P {n1(m.proteinG)} g · C {n1(m.carbsG)} g · G {n1(m.fatG)} g
+                        <b className="text-ink">{n0(m.kcal)} kcal</b> · P {n1(m.proteinG)} g · C {n1(m.carbsG)} g · G {n1(m.fatG)} g · A {n1(m.sugarG)} g · F {n1(m.fiberG)} g · Na {n0(m.sodiumMg)} mg
                         {m.source === 'ia' && (
                           <span className="ml-1 inline-flex items-center gap-0.5 text-violet-600">
                             · <Sparkles size={11} /> IA
@@ -261,7 +267,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
 
   const applyItems = (items: MealItem[]) => {
     const sum = (k: keyof MealItem) => items.reduce((a, i) => a + Number(i[k]), 0);
-    set({ items, kcal: String(Math.round(sum('kcal'))), proteinG: fmt(sum('proteinG')), carbsG: fmt(sum('carbsG')), fatG: fmt(sum('fatG')) });
+    set({ items, kcal: String(Math.round(sum('kcal'))), proteinG: fmt(sum('proteinG')), carbsG: fmt(sum('carbsG')), fatG: fmt(sum('fatG')), sugarG: fmt(sum('sugarG')), fiberG: fmt(sum('fiberG')), sodiumMg: String(Math.round(sum('sodiumMg'))) });
   };
 
   const estimate = async () => {
@@ -301,6 +307,9 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
       proteinG: parseNum(d.proteinG) ?? 0,
       carbsG: parseNum(d.carbsG) ?? 0,
       fatG: parseNum(d.fatG) ?? 0,
+      sugarG: parseNum(d.sugarG) ?? 0,
+      fiberG: parseNum(d.fiberG) ?? 0,
+      sodiumMg: Math.round(parseNum(d.sodiumMg) ?? 0),
       items: d.items,
       source: d.source,
     };
@@ -405,7 +414,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-sm font-semibold">{it.name}</p>
                     <p className="text-xs text-muted">
-                      {it.quantity} · P {n1(it.proteinG)} · C {n1(it.carbsG)} · G {n1(it.fatG)}
+                      {it.quantity} · P {n1(it.proteinG)} · C {n1(it.carbsG)} · G {n1(it.fatG)} · A {n1(it.sugarG ?? 0)} · F {n1(it.fiberG ?? 0)} · Na {n0(it.sodiumMg ?? 0)} mg
                     </p>
                   </div>
                   <span className="shrink-0 pt-0.5 text-sm font-bold">{n0(it.kcal)} kcal</span>
@@ -420,11 +429,14 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
         )}
         {!d.items.length && notes && <p className="text-xs text-muted">{notes}</p>}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Num id="kcal" label="Calorias (kcal)" value={d.kcal} onChange={(v) => set({ kcal: v })} />
           <Num id="prot" label="Proteína (g)" value={d.proteinG} onChange={(v) => set({ proteinG: v })} />
           <Num id="carb" label="Carboidrato (g)" value={d.carbsG} onChange={(v) => set({ carbsG: v })} />
           <Num id="fat" label="Gordura (g)" value={d.fatG} onChange={(v) => set({ fatG: v })} />
+          <Num id="sugar" label="Açúcar (g)" value={d.sugarG} onChange={(v) => set({ sugarG: v })} />
+          <Num id="fiber" label="Fibra (g)" value={d.fiberG} onChange={(v) => set({ fiberG: v })} />
+          <Num id="sodium" label="Sódio (mg)" value={d.sodiumMg} onChange={(v) => set({ sodiumMg: v })} />
         </div>
 
         <ErrorBox message={error} />

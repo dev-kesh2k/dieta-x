@@ -36,8 +36,8 @@ const MEAL_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['name', 'quantity', 'kcal', 'protein_g', 'carbs_g', 'fat_g'],
-        properties: { name: { type: 'string' }, quantity: { type: 'string' }, kcal: NUM, protein_g: NUM, carbs_g: NUM, fat_g: NUM },
+        required: ['name', 'quantity', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'sugar_g', 'fiber_g', 'sodium_mg'],
+        properties: { name: { type: 'string' }, quantity: { type: 'string' }, kcal: NUM, protein_g: NUM, carbs_g: NUM, fat_g: NUM, sugar_g: NUM, fiber_g: NUM, sodium_mg: NUM },
       },
     },
     notes: { type: 'string' },
@@ -47,7 +47,7 @@ const MEAL_SCHEMA = {
 const SYSTEM = `Você é um nutricionista brasileiro que estima calorias e macronutrientes de refeições descritas em texto livre.
 Use como referência a Tabela Brasileira de Composição de Alimentos (TACO) e porções caseiras típicas do Brasil.
 Separe a refeição em itens. Quando a quantidade não for informada, assuma uma porção média brasileira e diga qual em "quantity" (ex.: "1 unidade (50 g)", "4 colheres de sopa (100 g)").
-Considere o modo de preparo citado (frito, grelhado, com óleo, com açúcar). Valores por item: kcal, proteína, carboidrato e gordura em gramas.
+Considere o modo de preparo citado (frito, grelhado, com óleo, com açúcar). Valores por item: kcal, proteína, carboidrato, gordura e açúcares totais em gramas (sugar_g: os naturais de frutas, leite e vegetais mais o açúcar adicionado, mel, xaropes e o dos industrializados; nunca maior que o carboidrato), fibra alimentar em gramas (fiber_g) e sódio em miligramas (sodium_mg: o natural, o do sal do preparo — preparo caseiro brasileiro típico usa ~1 g de sal (400 mg de sódio) por porção de arroz, feijão ou carne — e o dos industrializados, embutidos, queijos, pães e temperos prontos).
 Em "notes", escreva em português, em no máximo duas frases, as suposições feitas sobre porções (ou deixe vazio).
 Se vier foto do prato: identifique cada alimento visível e estime o peso em gramas pelo tamanho (um prato raso tem ~25 cm, uma colher de sopa ~6 cm, um garfo ~19 cm) e pela altura das porções; em "quantity" escreva sempre os gramas estimados (ex.: "~120 g (4 colheres de sopa)"). Use o texto, se houver, para corrigir a foto (ingredientes escondidos, preparo, quantidades).
 Se o texto (e a foto) não mostrar comida ou bebida, devolva "items" vazio e explique em "notes".
@@ -170,6 +170,9 @@ export async function estimateMeal(description, images = []) {
     proteinG: r1(i.protein_g),
     carbsG: r1(i.carbs_g),
     fatG: r1(i.fat_g),
+    sugarG: Math.min(r1(i.sugar_g), r1(i.carbs_g)),
+    fiberG: Math.min(r1(i.fiber_g), r1(i.carbs_g)),
+    sodiumMg: Math.max(0, Math.round(Number(i.sodium_mg) || 0)),
   }));
   const sum = (k) => items.reduce((acc, i) => acc + i[k], 0);
   return {
@@ -178,6 +181,9 @@ export async function estimateMeal(description, images = []) {
     proteinG: r1(sum('proteinG')),
     carbsG: r1(sum('carbsG')),
     fatG: r1(sum('fatG')),
+    sugarG: r1(sum('sugarG')),
+    fiberG: r1(sum('fiberG')),
+    sodiumMg: sum('sodiumMg'),
     notes: String(parsed.notes || '').slice(0, 400),
     model,
   };
