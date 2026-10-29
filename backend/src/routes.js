@@ -320,7 +320,24 @@ api.post('/assistant/ask', wrap(async (req, res) => {
   if (hits.filter((t) => now - t < 60000).length >= 5) throw new HttpError(429, 'Muitas perguntas seguidas. Aguarde um minuto.');
   if (hits.length >= 50) throw new HttpError(429, 'Limite diário de perguntas atingido. Volte amanhã.');
   askRate.set(req.user.id, [...hits, now]);
-  res.json({ answer: await askCalories(history, images) });
+  // Perfil resumido para personalizar a resposta (sem nome nem e-mail).
+  const today = dayKey();
+  const { weights, kcalByDay, burnedByDay } = await loadReportData(req.user.id, today);
+  const rep = report(req.user, weights, kcalByDay, today, burnedByDay);
+  const u = req.user;
+  const profile = [
+    u.sex && `sexo ${u.sex === 'M' ? 'masculino' : 'feminino'}`,
+    rep.age != null && `${rep.age} anos`,
+    u.heightCm && `${u.heightCm} cm`,
+    rep.weightKg != null && `${rep.weightKg} kg`,
+    rep.bmi != null && `IMC ${rep.bmi}`,
+    `objetivo: ${u.goalMode === 'massa' ? 'ganhar massa magra' : 'perder peso'}`,
+    u.goalWeightKg && `peso meta ${u.goalWeightKg} kg`,
+    `atividade ${u.activity}`,
+    rep.calorieGoal && `meta ${rep.calorieGoal} kcal/dia`,
+    rep.proteinGoalG && `proteína ${rep.proteinGoalG} g/dia`,
+  ].filter(Boolean).join(', ');
+  res.json({ answer: await askCalories(history, images, profile) });
 }));
 api.post('/menu/generate', wrap(async (req, res) => {
   const level = String(req.body?.level ?? '');
