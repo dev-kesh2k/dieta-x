@@ -12,7 +12,7 @@ function RichText({ text }: { text: string }) {
   return <>{text.split(/(\*\*[^*\n]+\*\*)/g).map((part, i) => (/^\*\*[^*\n]+\*\*$/.test(part) ? <b key={i}>{part.slice(2, -2)}</b> : part))}</>;
 }
 
-/** Botão flutuante com o assistente de calorias (Haiku, só perguntas sobre calorias de refeições). */
+/** Botão flutuante com o assistente: alimentos, exercícios, dieta e suplementação (e foto do prato). */
 export function AssistantButton() {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -68,16 +68,16 @@ export function AssistantButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label="Assistente de calorias"
+        aria-label="Assistente"
         className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-lg shadow-brand/30 transition active:scale-95 md:right-6 md:bottom-6"
       >
         <Sparkles size={24} />
       </button>
-      <Sheet open={open} title="Assistente de calorias" onClose={() => setOpen(false)}>
+      <Sheet open={open} title="Assistente de nutrição" onClose={() => setOpen(false)}>
         <div className="flex max-h-[60dvh] min-h-[30dvh] flex-col gap-2 overflow-y-auto pb-2 text-sm">
           {!msgs.length && (
             <p className="rounded-2xl bg-tint p-3 text-soft">
-              Pergunte sobre calorias de alimentos e refeições, ou mande uma foto do prato <Camera size={14} className="inline align-[-2px]" /> para saber os gramas e as calorias de cada coisa. Ex.: “Quantas calorias tem um pão francês com manteiga?”
+              Tire dúvidas sobre alimentos, exercícios, dieta e suplementação, ou mande uma foto do prato <Camera size={14} className="inline align-[-2px]" /> para saber os gramas e as calorias de cada coisa. Ex.: “Quais frutas têm mais fibra?”, “Creatina funciona?”, “Quantas calorias tem um pão francês com manteiga?”
             </p>
           )}
           {msgs.map((m, i) => (
@@ -113,7 +113,7 @@ export function AssistantButton() {
           <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line text-violet-700 hover:bg-violet-50" onClick={() => fileInput.current?.click()} disabled={busy} aria-label="Anexar foto">
             <Camera size={20} />
           </button>
-          <input className="input min-w-0 flex-1" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={photo ? 'Opcional: detalhe a foto' : 'Ex.: 1 prato de arroz e feijão'} />
+          <input className="input min-w-0 flex-1" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={photo ? 'Opcional: detalhe a foto' : 'Pergunte sobre comida, treino, dieta…'} />
           <button className="btn-primary !px-4" disabled={busy || (!text.trim() && !photo)} aria-label="Enviar">
             <Send size={18} />
           </button>
