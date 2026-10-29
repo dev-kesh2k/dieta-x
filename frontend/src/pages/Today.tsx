@@ -97,7 +97,7 @@ export default function Today() {
                         {m.label}
                         {'limit' in m && <span className="font-normal text-muted"> (limite)</span>}
                       </span>
-                      <span className="text-muted">
+                      <span className="shrink-0 whitespace-nowrap text-muted">
                         {'unit' in m ? n0(m.value) : n1(m.value)}
                         {m.goal ? ` / ${n0(m.goal)}` : ''} {'unit' in m ? m.unit : 'g'}
                       </span>
