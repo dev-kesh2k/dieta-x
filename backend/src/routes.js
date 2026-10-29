@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { prisma, HttpError, addDays, dayKey, isDay } from './db.js';
+import { prisma, HttpError, addDays, dayKey, diffDays, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
-import { ACTIVITY, GOAL_MODES, MEAL_TYPES, bmiSeries, report } from './diet.js';
+import { ACTIVITY, GOAL_MODES, MEAL_TYPES, ageOn, bmi, bmiClass, bmiSeries, report, weightAt } from './diet.js';
 import { LEVELS, UNLOCK_DAYS, exerciseKcal, findExercise, levelProgress } from './exercises.js';
 import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, parseImages, saveModel, testAi } from './ai.js';
 
@@ -184,6 +184,125 @@ api.get('/progress', wrap(async (req, res) => {
     weights: weights.map((w) => ({ id: w.id, day: w.day, weightKg: w.weightKg, note: w.note })),
     bmi: bmiSeries(weights, req.user.heightCm, weights[0]?.day && weights[0].day > from ? weights[0].day : from, today),
     daily: days.map((d) => ({ day: d, kcal: kcalByDay[d] || 0, waterMl: waterByDay[d] || 0 })),
+  });
+}));
+
+// ---------- Linha do tempo ----------
+// Dias de dieta desde o primeiro registro, semanas resumidas e marcos (peso, IMC, sequências).
+api.get('/timeline', wrap(async (req, res) => {
+  const userId = req.user.id;
+  const today = dayKey();
+  const [weights, meals, water, exercises, firstMeal] = await Promise.all([
+    prisma.weightEntry.findMany({ where: { userId }, orderBy: { day: 'asc' } }),
+    prisma.meal.groupBy({ by: ['day'], where: { userId }, _sum: { kcal: true, proteinG: true } }),
+    prisma.waterEntry.groupBy({ by: ['day'], where: { userId }, _sum: { ml: true } }),
+    prisma.exerciseEntry.groupBy({ by: ['day'], where: { userId }, _sum: { kcal: true }, _count: true }),
+    prisma.meal.findFirst({ where: { userId }, orderBy: { day: 'asc' }, select: { day: true } }),
+  ]);
+  const kcalByDay = Object.fromEntries(meals.map((m) => [m.day, m._sum.kcal || 0]));
+  const waterByDay = Object.fromEntries(water.map((w) => [w.day, w._sum.ml || 0]));
+  const exByDay = Object.fromEntries(exercises.map((e) => [e.day, { kcal: e._sum.kcal || 0, count: e._count }]));
+  const starts = [firstMeal?.day, weights[0]?.day, exercises.map((e) => e.day).sort()[0]].filter(Boolean).sort();
+  const start = starts[0] && starts[0] <= today ? starts[0] : null;
+  const rep = report(req.user, weights, kcalByDay, today);
+  if (!start) return res.json({ start: null, today, totalDays: 0, weeks: [], milestones: [], report: rep });
+
+  const goal = rep.calorieGoal;
+  const onGoal = (k) => goal && k > 0 && Math.abs(k - goal) <= goal * 0.1;
+  const totalDays = diffDays(start, today) + 1;
+  const loggedDays = Object.values(kcalByDay).filter((k) => k > 0).length;
+
+  // Sequências de dias seguidos com refeição registrada.
+  let best = 0;
+  let run = 0;
+  const milestones = [{ day: start, kind: 'start', title: 'Início da dieta', text: 'Primeiro registro no Dieta X.' }];
+  const streakMarks = [7, 14, 30, 60, 100, 180, 365];
+  for (let d = start; d <= today; d = addDays(d, 1)) {
+    run = kcalByDay[d] > 0 ? run + 1 : 0;
+    if (run > best) {
+      best = run;
+      if (streakMarks.includes(run)) milestones.push({ day: d, kind: 'streak', title: `${run} dias seguidos`, text: `Registrou as refeições ${run} dias sem falhar.` });
+    }
+  }
+  let current = 0;
+  for (let d = kcalByDay[today] ? today : addDays(today, -1); kcalByDay[d] > 0; d = addDays(d, -1)) current += 1;
+  for (const n of [30, 60, 90, 180, 365]) if (totalDays >= n) milestones.push({ day: addDays(start, n - 1), kind: 'days', title: `${n} dias de dieta`, text: `Completou ${n} dias desde o início.` });
+
+  // Marcos de peso: cada kg inteiro perdido (ou ganho), 5% e 10% do peso inicial, faixa de IMC e meta.
+  const massa = req.user.goalMode === 'massa';
+  if (weights.length) {
+    const w0 = weights[0].weightKg;
+    milestones.push({ day: weights[0].day, kind: 'weight', title: 'Primeira pesagem', text: `${String(w0).replace('.', ',')} kg.` });
+    let kgMark = 0;
+    const pct = new Set();
+    let lastClass = bmiClass(bmi(w0, req.user.heightCm), ageOn(req.user.birthDate, weights[0].day));
+    let goalHit = false;
+    for (const w of weights.slice(1)) {
+      const delta = massa ? w.weightKg - w0 : w0 - w.weightKg;
+      const verb = massa ? 'ganhos' : 'perdidos';
+      while (Math.floor(delta) > kgMark) {
+        kgMark += 1;
+        if (kgMark <= 5 || kgMark % 5 === 0) milestones.push({ day: w.day, kind: 'weight', title: `${kgMark} kg ${verb}`, text: `Pesagem de ${String(w.weightKg).replace('.', ',')} kg.` });
+      }
+      for (const p of [5, 10, 15, 20]) {
+        if (!pct.has(p) && delta >= (w0 * p) / 100) {
+          pct.add(p);
+          milestones.push({ day: w.day, kind: 'weight', title: `${p}% do peso inicial`, text: massa ? `Ganhou ${p}% do peso inicial.` : `Perdeu ${p}% do peso inicial: ${p >= 5 && p < 10 ? 'já melhora pressão, glicemia e colesterol' : 'benefício grande para a saúde'}.` });
+        }
+      }
+      const cls = bmiClass(bmi(w.weightKg, req.user.heightCm), ageOn(req.user.birthDate, w.day));
+      if (cls && lastClass && cls !== lastClass) milestones.push({ day: w.day, kind: 'bmi', title: `IMC: ${cls}`, text: `Saiu de "${lastClass}".` });
+      lastClass = cls;
+      if (!goalHit && req.user.goalWeightKg && (massa ? w.weightKg >= req.user.goalWeightKg : w.weightKg <= req.user.goalWeightKg)) {
+        goalHit = true;
+        milestones.push({ day: w.day, kind: 'goal', title: 'Meta de peso atingida!', text: `Chegou aos ${String(req.user.goalWeightKg).replace('.', ',')} kg.` });
+      }
+    }
+  }
+
+  // Semanas a partir do início (semana 1 = 7 primeiros dias), da mais recente para a mais antiga.
+  const weeks = [];
+  let prevWeight = weights.length ? weights[0].weightKg : null;
+  for (let i = 0, from = start; from <= today; i += 1, from = addDays(from, 7)) {
+    const to = addDays(from, 6) < today ? addDays(from, 6) : today;
+    const days = Array.from({ length: diffDays(from, to) + 1 }, (_, j) => addDays(from, j));
+    const logged = days.filter((d) => kcalByDay[d] > 0);
+    const w = weightAt(weights, to);
+    const weightKg = w && w.day >= start ? w.weightKg : null;
+    weeks.push({
+      n: i + 1,
+      from,
+      to,
+      days: days.length,
+      daysLogged: logged.length,
+      daysOnGoal: logged.filter((d) => onGoal(kcalByDay[d])).length,
+      avgKcal: logged.length ? Math.round(logged.reduce((a, d) => a + kcalByDay[d], 0) / logged.length) : null,
+      avgWaterMl: days.some((d) => waterByDay[d]) ? Math.round(days.reduce((a, d) => a + (waterByDay[d] || 0), 0) / days.length) : null,
+      exercises: days.reduce((a, d) => a + (exByDay[d]?.count || 0), 0),
+      burnedKcal: days.reduce((a, d) => a + (exByDay[d]?.kcal || 0), 0),
+      weightKg,
+      weightChange: weightKg != null && prevWeight != null ? Math.round((weightKg - prevWeight) * 10) / 10 : null,
+    });
+    if (weightKg != null) prevWeight = weightKg;
+  }
+  weeks.reverse();
+  milestones.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+
+  res.json({
+    start,
+    today,
+    totalDays,
+    loggedDays,
+    bestStreak: best,
+    currentStreak: current,
+    exercisesDone: exercises.reduce((a, e) => a + e._count, 0),
+    burnedKcal: exercises.reduce((a, e) => a + (e._sum.kcal || 0), 0),
+    startWeightKg: weights[0]?.weightKg ?? null,
+    weightKg: weights.at(-1)?.weightKg ?? null,
+    goalMode: req.user.goalMode || 'emagrecer',
+    weeks,
+    milestones,
+    report: rep,
   });
 }));
 

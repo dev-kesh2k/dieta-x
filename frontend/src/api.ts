@@ -245,3 +245,41 @@ export interface RankingData {
   joined: boolean;
   entries: RankingEntry[];
 }
+
+export interface TimelineWeek {
+  n: number;
+  from: string;
+  to: string;
+  days: number;
+  daysLogged: number;
+  daysOnGoal: number;
+  avgKcal: number | null;
+  avgWaterMl: number | null;
+  exercises: number;
+  burnedKcal: number;
+  weightKg: number | null;
+  weightChange: number | null;
+}
+
+export interface TimelineMilestone {
+  day: string;
+  kind: 'start' | 'weight' | 'bmi' | 'goal' | 'streak' | 'days';
+  title: string;
+  text: string;
+}
+
+export interface TimelineData {
+  start: string | null;
+  today: string;
+  totalDays: number;
+  loggedDays: number;
+  bestStreak: number;
+  currentStreak: number;
+  exercisesDone: number;
+  burnedKcal: number;
+  startWeightKg: number | null;
+  weightKg: number | null;
+  goalMode: GoalMode;
+  weeks: TimelineWeek[];
+  milestones: TimelineMilestone[];
+}
