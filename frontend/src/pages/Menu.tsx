@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChefHat, Loader2 } from 'lucide-react';
+import { ChefHat, Loader2, ShoppingBasket } from 'lucide-react';
 import { api } from '../api';
 import { ErrorBox, PageHeader } from '../ui';
 import { mealLabel, n0, n1 } from '../util';
@@ -16,6 +16,8 @@ interface MenuMeal {
 }
 interface MenuResult {
   level: string;
+  ingredients: string;
+  onlyThese: boolean;
   targetKcal: number;
   meals: MenuMeal[];
   totals: { kcal: number; proteinG: number; carbsG: number; fatG: number };
@@ -28,8 +30,20 @@ const LEVELS = [
   { id: 'avancado', label: 'Avançado', hint: 'receitas elaboradas' },
 ];
 
+/** Ingredientes ficam lembrados no aparelho para o próximo cardápio. */
+const ING_KEY = 'dieta-x:menu-ingredients';
+const loadIngredients = () => {
+  try {
+    return JSON.parse(localStorage.getItem(ING_KEY) || '') as { text: string; only: boolean };
+  } catch {
+    return { text: '', only: false };
+  }
+};
+
 export default function Menu() {
   const [level, setLevel] = useState('facil');
+  const [ingredients, setIngredients] = useState(() => loadIngredients().text);
+  const [onlyThese, setOnlyThese] = useState(() => loadIngredients().only);
   const [menu, setMenu] = useState<MenuResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -38,7 +52,12 @@ export default function Menu() {
     setBusy(true);
     setError('');
     try {
-      setMenu(await api.post<MenuResult>('/menu/generate', { level }));
+      localStorage.setItem(ING_KEY, JSON.stringify({ text: ingredients, only: onlyThese }));
+    } catch {
+      /* sem armazenamento */
+    }
+    try {
+      setMenu(await api.post<MenuResult>('/menu/generate', { level, ingredients, onlyThese }));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -63,6 +82,37 @@ export default function Menu() {
             </button>
           ))}
         </div>
+        <div>
+          <label className="label flex items-center gap-1.5" htmlFor="menu-ing">
+            <ShoppingBasket size={16} className="text-brand" /> Ingredientes que você tem (opcional)
+          </label>
+          <textarea
+            id="menu-ing"
+            className="input min-h-20 resize-y"
+            maxLength={600}
+            placeholder="Ex.: frango, ovos, arroz, feijão, batata-doce, tomate, alface, banana, aveia, iogurte"
+            value={ingredients}
+            onChange={(e) => setIngredients(e.target.value)}
+          />
+          {ingredients.trim() && (
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {[
+                { only: false, label: 'Priorizar estes', hint: 'pode sugerir outros' },
+                { only: true, label: 'Só estes', hint: '+ sal, óleo e temperos' },
+              ].map((o) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  onClick={() => setOnlyThese(o.only)}
+                  className={`min-h-11 rounded-xl px-3 py-2 text-left ${onlyThese === o.only ? 'bg-brand text-white' : 'bg-tint text-soft'}`}
+                >
+                  <span className="block text-sm font-semibold">{o.label}</span>
+                  <span className="block text-xs opacity-80">{o.hint}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <ErrorBox message={error} />
         <button className="btn-primary w-full" onClick={generate} disabled={busy}>
           {busy ? <Loader2 size={18} className="animate-spin" /> : <ChefHat size={18} />}
@@ -74,6 +124,11 @@ export default function Menu() {
         <div className="mt-4 space-y-3">
           <div className="card text-sm">
             <b>{n0(menu.totals.kcal)} kcal</b> de {n0(menu.targetKcal)} kcal · P {n1(menu.totals.proteinG)} g · C {n1(menu.totals.carbsG)} g · G {n1(menu.totals.fatG)} g
+            {menu.ingredients && (
+              <p className="mt-1 text-xs text-muted">
+                {menu.onlyThese ? 'Só com os seus ingredientes' : 'Priorizando os seus ingredientes; itens marcados "(comprar)" não estão na sua lista'}
+              </p>
+            )}
             {menu.tips && <p className="mt-2 text-xs text-muted">{menu.tips}</p>}
           </div>
           {menu.meals.map((m, i) => (
