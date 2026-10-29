@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChefHat, Loader2, ShoppingBasket } from 'lucide-react';
 import { api } from '../api';
 import { ErrorBox, PageHeader } from '../ui';
-import { mealLabel, n0, n1 } from '../util';
+import { MEAL_TYPES, mealLabel, n0, n1 } from '../util';
 
 interface MenuMeal {
   type: string;
@@ -16,6 +16,7 @@ interface MenuMeal {
 }
 interface MenuResult {
   level: string;
+  meal: string;
   ingredients: string;
   onlyThese: boolean;
   targetKcal: number;
@@ -30,6 +31,9 @@ const LEVELS = [
   { id: 'avancado', label: 'Avançado', hint: 'receitas elaboradas' },
 ];
 
+/** O dia inteiro ou uma refeição só (a meta é a parte dela nas calorias do dia). */
+const MEALS = [{ id: '', label: 'Dia inteiro' }, ...MEAL_TYPES.filter((t) => t.id !== 'outro')];
+
 /** Ingredientes ficam lembrados no aparelho para o próximo cardápio. */
 const ING_KEY = 'dieta-x:menu-ingredients';
 const loadIngredients = () => {
@@ -42,6 +46,7 @@ const loadIngredients = () => {
 
 export default function Menu() {
   const [level, setLevel] = useState('facil');
+  const [meal, setMeal] = useState('');
   const [ingredients, setIngredients] = useState(() => loadIngredients().text);
   const [onlyThese, setOnlyThese] = useState(() => loadIngredients().only);
   const [menu, setMenu] = useState<MenuResult | null>(null);
@@ -57,7 +62,7 @@ export default function Menu() {
       /* sem armazenamento */
     }
     try {
-      setMenu(await api.post<MenuResult>('/menu/generate', { level, ingredients, onlyThese }));
+      setMenu(await api.post<MenuResult>('/menu/generate', { level, meal, ingredients, onlyThese }));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -69,6 +74,21 @@ export default function Menu() {
     <>
       <PageHeader title="Cardápio" subtitle="Cardápio do dia na sua meta de calorias" />
       <div className="card space-y-4">
+        <div>
+          <span className="label">O que gerar</span>
+          <div className="flex flex-wrap gap-2">
+            {MEALS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setMeal(m.id)}
+                className={`min-h-10 rounded-full px-3.5 py-1.5 text-sm font-semibold ${meal === m.id ? 'bg-brand text-white' : 'bg-tint text-soft'}`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid gap-2 sm:grid-cols-3">
           {LEVELS.map((l) => (
             <button
@@ -116,14 +136,16 @@ export default function Menu() {
         <ErrorBox message={error} />
         <button className="btn-primary w-full" onClick={generate} disabled={busy}>
           {busy ? <Loader2 size={18} className="animate-spin" /> : <ChefHat size={18} />}
-          {busy ? 'Montando o cardápio… (pode levar um minuto)' : menu ? 'Gerar outro cardápio' : 'Gerar cardápio'}
+          {busy
+            ? meal ? 'Montando a receita…' : 'Montando o cardápio… (pode levar um minuto)'
+            : meal ? `Gerar ${mealLabel(meal).toLowerCase()}` : menu ? 'Gerar outro cardápio' : 'Gerar cardápio'}
         </button>
       </div>
 
       {menu && (
         <div className="mt-4 space-y-3">
           <div className="card text-sm">
-            <b>{n0(menu.totals.kcal)} kcal</b> de {n0(menu.targetKcal)} kcal · P {n1(menu.totals.proteinG)} g · C {n1(menu.totals.carbsG)} g · G {n1(menu.totals.fatG)} g
+            <b>{n0(menu.totals.kcal)} kcal</b> de {n0(menu.targetKcal)} kcal{menu.meal ? ` · meta: ${mealLabel(menu.meal)}` : ''} · P {n1(menu.totals.proteinG)} g · C {n1(menu.totals.carbsG)} g · G {n1(menu.totals.fatG)} g
             {menu.ingredients && (
               <p className="mt-1 text-xs text-muted">
                 {menu.onlyThese ? 'Só com os seus ingredientes' : 'Priorizando os seus ingredientes; itens marcados "(comprar)" não estão na sua lista'}

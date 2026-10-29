@@ -4,7 +4,7 @@ import { prisma, HttpError, addDays, dayKey, diffDays, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, GOAL_MODES, MEAL_TYPES, ageOn, bmi, bmiClass, bmiSeries, report, weightAt } from './diet.js';
 import { LEVELS, UNLOCK_DAYS, exerciseKcal, findExercise, levelProgress } from './exercises.js';
-import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, parseImages, saveModel, testAi } from './ai.js';
+import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, MENU_MEAL_SHARE, parseImages, saveModel, testAi } from './ai.js';
 
 export const api = Router();
 
@@ -463,6 +463,9 @@ api.post('/menu/generate', wrap(async (req, res) => {
   // Ingredientes que o usuário tem em casa (opcional): texto livre, uma linha só, até 600 caracteres.
   const ingredients = String(req.body?.ingredients ?? '').replace(/\s+/g, ' ').trim().slice(0, 600);
   const onlyThese = Boolean(req.body?.onlyThese) && !!ingredients;
+  // Refeição única (cafe, almoco…) ou vazio para o dia inteiro.
+  const meal = String(req.body?.meal ?? '');
+  if (meal && !(meal in MENU_MEAL_SHARE)) throw new HttpError(400, 'Refeição inválida');
   const today = dayKey();
   const { weights, kcalByDay, burnedByDay } = await loadReportData(req.user.id, today);
   const rep = report(req.user, weights, kcalByDay, today, burnedByDay);
@@ -471,7 +474,7 @@ api.post('/menu/generate', wrap(async (req, res) => {
   const hits = (aiRate.get(req.user.id) || []).filter((t) => now - t < 60000);
   if (hits.length >= 10) throw new HttpError(429, 'Muitas análises seguidas. Aguarde um minuto.');
   aiRate.set(req.user.id, [...hits, now]);
-  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg, mode: rep.goalMode, proteinG: rep.proteinGoalG, ingredients, onlyThese }));
+  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg, mode: rep.goalMode, proteinG: rep.proteinGoalG, ingredients, onlyThese, meal }));
 }));
 
 api.post('/meals', wrap(async (req, res) => {
