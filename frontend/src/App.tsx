@@ -7,6 +7,7 @@ import Meals from './pages/Meals';
 import Exercises from './pages/Exercises';
 import Menu from './pages/Menu';
 import Progress from './pages/Progress';
+import Timeline from './pages/Timeline';
 import Ranking from './pages/Ranking';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/exercicios" element={<Exercises />} />
             <Route path="/cardapio" element={<Menu />} />
             <Route path="/progresso" element={<Progress />} />
+            <Route path="/linha-do-tempo" element={<Timeline />} />
             <Route path="/ranking" element={<Ranking />} />
             <Route path="/perfil" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />

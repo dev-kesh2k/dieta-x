@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { iconSvg } from './icon-art.js';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { AlertCircle, ChefHat, ChevronRight, Dumbbell, Home, LineChart, Loader2, Shield, Trophy, User, Utensils, X } from 'lucide-react';
+import { AlertCircle, ChefHat, ChevronRight, Dumbbell, History, Home, LineChart, Loader2, Shield, Trophy, User, Utensils, X } from 'lucide-react';
 import { useAuth } from './auth';
 import { AssistantButton } from './assistant';
 
@@ -12,6 +12,7 @@ const NAV = [
   { to: '/exercicios', label: 'Exercícios', icon: Dumbbell, end: false },
   { to: '/cardapio', label: 'Cardápio', icon: ChefHat, end: false },
   { to: '/progresso', label: 'Progresso', icon: LineChart, end: false },
+  { to: '/linha-do-tempo', label: 'Linha do tempo', icon: History, end: false },
   { to: '/ranking', label: 'Ranking', icon: Trophy, end: false },
   { to: '/perfil', label: 'Perfil', icon: User, end: false },
 ];
