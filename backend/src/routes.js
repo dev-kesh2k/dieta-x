@@ -460,6 +460,9 @@ api.post('/assistant/ask', wrap(async (req, res) => {
 api.post('/menu/generate', wrap(async (req, res) => {
   const level = String(req.body?.level ?? '');
   if (!MENU_LEVELS.includes(level)) throw new HttpError(400, 'Escolha o nível: fácil, médio ou avançado');
+  // Ingredientes que o usuário tem em casa (opcional): texto livre, uma linha só, até 600 caracteres.
+  const ingredients = String(req.body?.ingredients ?? '').replace(/\s+/g, ' ').trim().slice(0, 600);
+  const onlyThese = Boolean(req.body?.onlyThese) && !!ingredients;
   const today = dayKey();
   const { weights, kcalByDay, burnedByDay } = await loadReportData(req.user.id, today);
   const rep = report(req.user, weights, kcalByDay, today, burnedByDay);
@@ -468,7 +471,7 @@ api.post('/menu/generate', wrap(async (req, res) => {
   const hits = (aiRate.get(req.user.id) || []).filter((t) => now - t < 60000);
   if (hits.length >= 10) throw new HttpError(429, 'Muitas análises seguidas. Aguarde um minuto.');
   aiRate.set(req.user.id, [...hits, now]);
-  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg, mode: rep.goalMode, proteinG: rep.proteinGoalG }));
+  res.json(await generateMenu({ level, kcal: rep.calorieGoal, goalKg: rep.goal?.weightKg ?? null, currentKg: rep.weightKg, mode: rep.goalMode, proteinG: rep.proteinGoalG, ingredients, onlyThese }));
 }));
 
 api.post('/meals', wrap(async (req, res) => {
