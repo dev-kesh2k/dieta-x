@@ -1,23 +1,23 @@
 name: Deploy
 
-# main -> produção (/dieta-x/) · dev -> ambiente de testes (/dieta-x-dev/)
+# main -> produção (/dieta-x/). Não há ambiente de testes: todo push na main vai para o ar.
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   workflow_dispatch:
 
 env:
-  SLUG: ${{ github.ref_name == 'main' && 'dieta-x' || 'dieta-x-dev' }}
-  APP_NAME: ${{ github.ref_name == 'main' && 'Dieta X' || 'Dieta X Dev' }}
+  SLUG: dieta-x
+  APP_NAME: Dieta X
 
 concurrency:
-  group: deploy-${{ github.ref_name }}
+  group: deploy-main
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: [self-hosted, hub]
-    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
