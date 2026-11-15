@@ -4,6 +4,8 @@ Mudanças relevantes do app, da mais nova para a mais antiga. Cada item é um pu
 
 ## 2026-11-15
 
+- **Novo:** Perfil → Meus dados → *Exportar meus dados* baixa pesos, refeições, água e exercícios em CSV (abre no Excel) (#21–#25)
+- **Saúde:** /health testa o banco e responde 503 se o Postgres cair (#20)
 - Segurança: react-router v7 no frontend (corrige open redirect GHSA-wrjc-x8rr-h8h6) (#17)
 - Segurança: body-parser, qs e hono atualizados no backend (npm audit) (#16)
 - CI: corrige o caminho dos testes (Node 22 não aceita pasta no --test) (#15)
