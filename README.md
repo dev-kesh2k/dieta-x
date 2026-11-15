@@ -1,5 +1,7 @@
 # Dieta X
 
+[![Testes](https://github.com/dev-kesh2k/dieta-x/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-kesh2k/dieta-x/actions/workflows/ci.yml)
+
 Controle de dieta: refeições com cálculo de calorias e macros pelo Claude (Anthropic), água, pesagens semanais, IMC diário, relatório semanal com previsão e metas.
 
 - frontend/: React + Vite + Tailwind.
@@ -32,3 +34,13 @@ npm run dev
 
 ## Publicação
 Todo push na `main` publica o app no Central Apps Hub pelo GitHub Actions (`.github/workflows/deploy.yml`). Mudanças só em documentação não disparam o deploy.
+
+## Testes
+
+Testes do backend com o executor nativo do Node (`node:test`), sem banco e sem servidor rodando:
+
+```bash
+node --test backend/test/*.test.js
+```
+
+Cobrem as regras puras do backend (bmi, dates, energy, exercises, report). O GitHub Actions roda os mesmos testes em cada push e pull request (workflow `Testes`); mudanças só em `backend/test/` não republicam o app.
