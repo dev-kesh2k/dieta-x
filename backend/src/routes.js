@@ -4,6 +4,7 @@ import { prisma, HttpError, addDays, dayKey, diffDays, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, GOAL_MODES, MEAL_TYPES, ageOn, bmi, bmiClass, bmiSeries, report, weightAt } from './diet.js';
 import { exportCsv } from './export.js';
+import { createLoginLimiter } from './login-limit.js';
 import { LEVELS, UNLOCK_DAYS, exerciseKcal, findExercise, levelProgress } from './exercises.js';
 import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, MENU_MEAL_SHARE, parseImages, saveModel, testAi } from './ai.js';
 
@@ -38,26 +39,20 @@ api.get('/health', wrap(async (_req, res) => {
 }));
 
 // ---------- Autenticação ----------
-const attempts = new Map();
-function checkRate(key) {
-  const a = attempts.get(key) || { n: 0, until: 0 };
-  if (a.until > Date.now()) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos.');
-  return a;
-}
+// Limite de tentativas (por IP+e-mail e por IP); a limpeza roda a cada 10 min.
+const loginLimit = createLoginLimiter();
+setInterval(() => loginLimit.sweep(), 10 * 60_000).unref();
 
 api.post('/auth/login', wrap(async (req, res) => {
   const email = str(req.body?.email, 160).toLowerCase();
   const password = String(req.body?.password ?? '');
-  const key = `${req.ip}|${email}`;
-  const a = checkRate(key);
+  loginLimit.check(req.ip, email);
   const user = email ? await prisma.user.findUnique({ where: { email } }) : null;
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    a.n += 1;
-    if (a.n >= 5) Object.assign(a, { n: 0, until: Date.now() + 5 * 60000 });
-    attempts.set(key, a);
+    loginLimit.fail(req.ip, email);
     throw new HttpError(401, 'Usuário ou senha incorretos');
   }
-  attempts.delete(key);
+  loginLimit.success(req.ip, email);
   res.json({ token: signToken(user), user: publicUser(user) });
 }));
 
