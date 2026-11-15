@@ -13,7 +13,19 @@ app.use((req, res, next) => (/\/(meals\/estimate|assistant\/ask)$/.test(req.path
 
 // O proxy pode repassar /api/..., o caminho completo /<slug>/api/... ou já sem o prefixo.
 const publicPath = String(process.env.PUBLIC_PATH || '').replace(/\/+$/, '');
-app.get(['/health', `${publicPath}/health`], (_req, res) => res.json({ ok: true }));
+// Saúde com o banco: 503 quando o Postgres não responde (o healthcheck do container continua só na porta).
+app.get(['/health', `${publicPath}/health`], async (_req, res) => {
+  const started = Date.now();
+  try {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+    ]);
+    res.json({ ok: true, db: 'ok', dbMs: Date.now() - started, uptimeS: Math.round(process.uptime()) });
+  } catch {
+    res.status(503).json({ ok: false, db: 'erro', uptimeS: Math.round(process.uptime()) });
+  }
+});
 if (publicPath) app.use(`${publicPath}/api`, api);
 app.use('/api', api);
 app.use('/', api);
