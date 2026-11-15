@@ -15,4 +15,4 @@ jobs:
         with:
           node-version: 22
       - name: Testes do backend
-        run: node --test backend/test/
+        run: node --test backend/test/*.test.js
