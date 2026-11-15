@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma, HttpError, addDays, dayKey, diffDays, isDay } from './db.js';
 import { publicUser, requireAdmin, requireAuth, signToken } from './auth.js';
 import { ACTIVITY, GOAL_MODES, MEAL_TYPES, ageOn, bmi, bmiClass, bmiSeries, report, weightAt } from './diet.js';
+import { exportCsv } from './export.js';
 import { LEVELS, UNLOCK_DAYS, exerciseKcal, findExercise, levelProgress } from './exercises.js';
 import { DEFAULT_MODEL, MODELS, aiConfig, askCalories, estimateMeal, generateMenu, MENU_LEVELS, MENU_MEAL_SHARE, parseImages, saveModel, testAi } from './ai.js';
 
@@ -119,6 +120,20 @@ api.put('/me', wrap(async (req, res) => {
   if (b.waterGoalMl !== undefined) data.waterGoalMl = num(b.waterGoalMl, 'a meta de água (ml)', 500, 8000, { int: true });
   const user = await prisma.user.update({ where: { id: req.user.id }, data });
   res.json({ user: publicUser(user) });
+}));
+
+/** Todos os registros do usuário em CSV (portabilidade dos dados). */
+api.get('/me/export', wrap(async (req, res) => {
+  const userId = req.user.id;
+  const [meals, weights, waters, exercises] = await Promise.all([
+    prisma.meal.findMany({ where: { userId } }),
+    prisma.weightEntry.findMany({ where: { userId } }),
+    prisma.waterEntry.findMany({ where: { userId } }),
+    prisma.exerciseEntry.findMany({ where: { userId } }),
+  ]);
+  res.set('Content-Type', 'text/csv; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="dieta-x-${dayKey()}.csv"`);
+  res.send(exportCsv({ meals, weights, waters, exercises }));
 }));
 
 api.put('/me/password', wrap(async (req, res) => {
