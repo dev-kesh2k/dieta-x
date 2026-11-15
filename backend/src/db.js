@@ -17,11 +17,6 @@ function dbUrl() {
 
 export const prisma = new PrismaClient({ datasources: { db: { url: dbUrl() } } });
 
-export class HttpError extends Error {
-  constructor(status, message) {
-    super(message);
-    this.status = status;
-  }
-}
+export { HttpError } from './errors.js';
 
 export { TZ, dayKey, isDay, addDays, diffDays } from './dates.js';
