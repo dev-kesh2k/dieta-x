@@ -1,4 +1,4 @@
-import { addDays, dayKey, diffDays } from './db.js';
+import { addDays, dayKey, diffDays } from './dates.js';
 
 export const MEAL_TYPES = ['cafe', 'lanche_manha', 'almoco', 'lanche_tarde', 'jantar', 'ceia', 'outro'];
 export const ACTIVITY = { sedentario: 1.2, leve: 1.375, moderado: 1.55, intenso: 1.725, atleta: 1.9 };
