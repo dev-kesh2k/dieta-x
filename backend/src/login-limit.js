@@ -5,7 +5,7 @@
 import { HttpError } from './errors.js';
 
 export function createLoginLimiter({ maxFails = 5, lockMs = 5 * 60_000, ipMax = 30, windowMs = 15 * 60_000, now = () => Date.now() } = {}) {
-  const byKey = new Map(); // ip|email -> { n, until }
+  const byKey = new Map(); // ip|email -> { n, until, last }
   const byIp = new Map(); // ip -> { fails: number[], until }
   const keyOf = (ip, email) => `${ip}|${email}`;
 
@@ -20,8 +20,9 @@ export function createLoginLimiter({ maxFails = 5, lockMs = 5 * 60_000, ipMax = 
     fail(ip, email) {
       const t = now();
       const k = keyOf(ip, email);
-      const a = byKey.get(k) || { n: 0, until: 0 };
+      const a = byKey.get(k) || { n: 0, until: 0, last: 0 };
       a.n += 1;
+      a.last = t;
       if (a.n >= maxFails) Object.assign(a, { n: 0, until: t + lockMs });
       byKey.set(k, a);
       const b = byIp.get(ip) || { fails: [], until: 0 };
@@ -35,7 +36,8 @@ export function createLoginLimiter({ maxFails = 5, lockMs = 5 * 60_000, ipMax = 
     },
     sweep() {
       const t = now();
-      for (const [k, a] of byKey) if (a.until <= t && a.n === 0) byKey.delete(k);
+      // Sem bloqueio ativo e sem erro recente: some (erros antigos também param de contar).
+      for (const [k, a] of byKey) if (a.until <= t && t - a.last >= windowMs) byKey.delete(k);
       for (const [ip, b] of byIp) {
         b.fails = b.fails.filter((x) => t - x < windowMs);
         if (!b.fails.length && b.until <= t) byIp.delete(ip);
