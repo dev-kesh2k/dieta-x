@@ -49,6 +49,28 @@ export const api = {
 };
 
 /** Carrega um recurso da API; `reload` busca de novo sem piscar a tela. */
+/** Baixa um arquivo da API com o token (ex.: exportação em CSV) e abre o "salvar como" do navegador. */
+export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => {
+    throw new ApiError(0, 'Sem conexão com o servidor');
+  });
+  if (!res.ok) {
+    if (res.status === 401 && token) onUnauthorized();
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, data.error || `Erro ${res.status}`);
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export function useApi<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState('');
