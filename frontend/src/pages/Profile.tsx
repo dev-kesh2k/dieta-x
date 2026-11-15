@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { Camera, Check, CheckCircle2, KeyRound, LogOut, Trash2 } from 'lucide-react';
-import { api, useApi, type GoalMode, type Summary, type User } from '../api';
+import { Camera, Check, CheckCircle2, Download, KeyRound, LogOut, Trash2 } from 'lucide-react';
+import { api, downloadFile, useApi, type GoalMode, type Summary, type User } from '../api';
 import { useAuth } from '../auth';
 import { Avatar, ErrorBox, PageHeader } from '../ui';
 import { avatarFromFile } from '../photo';
@@ -20,6 +20,7 @@ export default function Profile() {
         </div>
         <div className="space-y-4">
           <PasswordForm />
+          <ExportCard />
           <button className="btn-ghost w-full !bg-red-50 !text-red-700" onClick={logout}>
             <LogOut size={18} /> Sair
           </button>
@@ -368,5 +369,36 @@ function PasswordForm() {
       {msg && <p className="text-sm text-brand-dark">{msg}</p>}
       <button className="btn-ghost w-full" disabled={busy}>{busy ? 'Salvando…' : 'Alterar senha'}</button>
     </form>
+  );
+}
+
+/** Baixa todos os registros (pesos, refeições, água e exercícios) em CSV, para guardar ou abrir no Excel. */
+function ExportCard() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const run = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await downloadFile('/me/export', `dieta-x-${todayKey()}.csv`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="card space-y-3">
+      <h2 className="flex items-center gap-2 font-bold">
+        <Download size={18} /> Meus dados
+      </h2>
+      <p className="text-sm opacity-70">Baixe tudo o que você registrou (pesos, refeições, água e exercícios) numa planilha CSV.</p>
+      <ErrorBox message={error} />
+      <button type="button" className="btn-ghost w-full" onClick={run} disabled={busy}>
+        <Download size={18} /> {busy ? 'Gerando…' : 'Exportar meus dados'}
+      </button>
+    </section>
   );
 }
