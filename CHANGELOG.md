@@ -4,6 +4,8 @@ Mudanças relevantes do app, da mais nova para a mais antiga. Cada item é um pu
 
 ## 2026-11-15
 
+- **Segurança:** login com limite por IP+e-mail e por IP (30 erros em 15 min), com limpeza automática; antes o limite era só por e-mail e a memória crescia sem parar
+- **Segurança:** cabeçalhos nosniff, Referrer-Policy e X-Frame-Options em todas as respostas (pelo Traefik do Hub)
 - **Novo:** Perfil → Meus dados → *Exportar meus dados* baixa pesos, refeições, água e exercícios em CSV (abre no Excel) (#21–#25)
 - **Saúde:** /health testa o banco e responde 503 se o Postgres cair (#20)
 - Segurança: react-router v7 no frontend (corrige open redirect GHSA-wrjc-x8rr-h8h6) (#17)
