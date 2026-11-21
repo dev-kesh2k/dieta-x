@@ -1,9 +1,10 @@
+import { randomBytes } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { prisma } from './db.js';
 
 const SECRET = process.env.JWT_SECRET || '';
 if (!SECRET) console.warn('JWT_SECRET não definido: usando segredo temporário (sessões caem ao reiniciar).');
-const KEY = SECRET || `tmp-${Math.random().toString(36).slice(2)}${Date.now()}`;
+const KEY = SECRET || `tmp-${randomBytes(24).toString('hex')}`;
 
 export function signToken(user) {
   return jwt.sign({ sub: user.id }, KEY, { expiresIn: '30d' });
