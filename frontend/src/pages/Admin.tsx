@@ -171,7 +171,7 @@ function UserSheet({ form, meId, onClose, onSaved }: { form: Form | null; meId: 
           <p className="mt-1 text-xs text-muted">Administradores criam usuários e configuram a IA.</p>
         </div>
         <ErrorBox message={error} />
-        <button className="btn-primary w-full" disabled={busy}>{busy ? 'Salvando…' : f.id ? 'Salvar alterações' : 'Criar usuário'}</button>
+        <button type="submit" className="btn-primary w-full" disabled={busy}>{busy ? 'Salvando…' : f.id ? 'Salvar alterações' : 'Criar usuário'}</button>
       </form>
     </Sheet>
   );
@@ -230,7 +230,7 @@ function AiConfig() {
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => api.put('/ai/config', { model }), 'Modelo atualizado.');
+          void run(() => api.put('/ai/config', { model }), 'Modelo atualizado.');
         }}
       >
         <select className="input" value={model} onChange={(e) => setModel(e.target.value)} aria-label="Modelo">
@@ -239,7 +239,7 @@ function AiConfig() {
           ))}
         </select>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-          <button className="btn-primary" disabled={busy || !data || model === data.model}>{busy ? 'Salvando…' : 'Salvar modelo'}</button>
+          <button type="submit" className="btn-primary" disabled={busy || !data || model === data.model}>{busy ? 'Salvando…' : 'Salvar modelo'}</button>
           <button type="button" className="btn-ghost" disabled={busy || !data?.configured} onClick={() => run(() => api.post('/ai/test'), 'Conexão com a assinatura Claude OK.')}>
             Testar conexão
           </button>
