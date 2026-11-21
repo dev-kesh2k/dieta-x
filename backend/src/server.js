@@ -12,7 +12,13 @@ const jsonPhotos = express.json({ limit: '12mb' });
 app.use((req, res, next) => (/\/(meals\/estimate|assistant\/ask)$/.test(req.path) ? jsonPhotos : jsonSmall)(req, res, next));
 
 // O proxy pode repassar /api/..., o caminho completo /<slug>/api/... ou já sem o prefixo.
-const publicPath = String(process.env.PUBLIC_PATH || '').replace(/\/+$/, '');
+// Tira as barras do fim sem regex (evita retrocesso).
+function trimTrailingSlashes(value) {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end--;
+  return value.slice(0, end);
+}
+const publicPath = trimTrailingSlashes(String(process.env.PUBLIC_PATH || ''));
 // Saúde com o banco: 503 quando o Postgres não responde (o healthcheck do container continua só na porta).
 app.get(['/health', `${publicPath}/health`], async (_req, res) => {
   const started = Date.now();

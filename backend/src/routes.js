@@ -12,6 +12,8 @@ export const api = Router();
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const str = (v, max = 120) => String(v ?? '').trim().slice(0, max);
+// Ordem de texto igual à do sort() padrão (datas AAAA-MM-DD).
+const compareText = (a, b) => (a < b ? -1 : Number(a > b));
 const LOGIN_RE = /^[a-z0-9._@-]{3,160}$/;
 const THEMES = ['verde', 'oceano', 'lavanda', 'rosa', 'escuro', 'noite'];
 
@@ -212,7 +214,7 @@ api.get('/timeline', wrap(async (req, res) => {
   const kcalByDay = Object.fromEntries(meals.map((m) => [m.day, m._sum.kcal || 0]));
   const waterByDay = Object.fromEntries(water.map((w) => [w.day, w._sum.ml || 0]));
   const exByDay = Object.fromEntries(exercises.map((e) => [e.day, { kcal: e._sum.kcal || 0, count: e._count }]));
-  const starts = [firstMeal?.day, weights[0]?.day, exercises.map((e) => e.day).sort()[0]].filter(Boolean).sort();
+  const starts = [firstMeal?.day, weights[0]?.day, exercises.map((e) => e.day).sort(compareText)[0]].filter(Boolean).sort(compareText);
   const start = starts[0] && starts[0] <= today ? starts[0] : null;
   const rep = report(req.user, weights, kcalByDay, today);
   if (!start) return res.json({ start: null, today, totalDays: 0, weeks: [], milestones: [], report: rep });
