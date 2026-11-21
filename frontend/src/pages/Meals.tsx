@@ -401,7 +401,7 @@ function MealSheet({ draft, day, aiReady, onClose, onSaved }: { draft: Draft | n
           </button>
         ) : (
           <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-            IA não configurada{user?.role === 'admin' ? '' : ''}. Informe as calorias abaixo.
+            IA não configurada. Informe as calorias abaixo.
           </p>
         )}
         {stale && <p className="text-xs font-semibold text-amber-700">A descrição mudou depois do cálculo. Recalcule para atualizar os valores.</p>}

@@ -114,7 +114,7 @@ export function AssistantButton() {
             <Camera size={20} />
           </button>
           <input className="input min-w-0 flex-1" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={photo ? 'Opcional: detalhe a foto' : 'Pergunte sobre comida, treino, dieta…'} />
-          <button className="btn-primary !px-4" disabled={busy || (!text.trim() && !photo)} aria-label="Enviar">
+          <button type="submit" className="btn-primary !px-4" disabled={busy || (!text.trim() && !photo)} aria-label="Enviar">
             <Send size={18} />
           </button>
         </form>

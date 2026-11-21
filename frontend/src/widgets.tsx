@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Droplet, GlassWater, Plus, Trash2 } from 'lucide-react';
 import { api, useApi, type WaterEntry } from './api';
 import { Bar, ErrorBox, Sheet } from './ui';
@@ -11,6 +11,12 @@ export function WeighSheet({ open, onClose, onSaved, lastKg }: { open: boolean; 
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const weightInput = useRef<HTMLInputElement>(null);
+
+  // Foco no peso ao abrir (no lugar do autoFocus).
+  useEffect(() => {
+    if (open) weightInput.current?.focus();
+  }, [open]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -37,7 +43,7 @@ export function WeighSheet({ open, onClose, onSaved, lastKg }: { open: boolean; 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="w-kg">Peso (kg)</label>
-            <input id="w-kg" className="input" inputMode="decimal" placeholder={lastKg ? String(lastKg).replace('.', ',') : 'ex.: 82,5'} value={weight} onChange={(e) => setWeight(e.target.value)} autoFocus />
+            <input id="w-kg" className="input" inputMode="decimal" placeholder={lastKg ? String(lastKg).replace('.', ',') : 'ex.: 82,5'} value={weight} onChange={(e) => setWeight(e.target.value)} ref={weightInput} />
           </div>
           <div>
             <label className="label" htmlFor="w-day">Data</label>
@@ -50,7 +56,7 @@ export function WeighSheet({ open, onClose, onSaved, lastKg }: { open: boolean; 
         </div>
         <p className="text-xs text-muted">Dica: pese-se uma vez por semana, no mesmo dia e horário, em jejum. Se já houver pesagem nesta data, ela será substituída.</p>
         <ErrorBox message={error} />
-        <button className="btn-primary w-full" disabled={busy}>{busy ? 'Salvando…' : 'Salvar pesagem'}</button>
+        <button type="submit" className="btn-primary w-full" disabled={busy}>{busy ? 'Salvando…' : 'Salvar pesagem'}</button>
       </form>
     </Sheet>
   );
@@ -120,11 +126,11 @@ export function WaterCard({ day, goalMl, onChange }: { day: string; goalMl: numb
           const v = parseNum(custom);
           if (v == null || v < 10) return setErr('Informe a quantidade em ml');
           setCustom('');
-          add(Math.round(v));
+          void add(Math.round(v));
         }}
       >
         <input className="input" inputMode="numeric" placeholder="Outro valor (ml)" value={custom} onChange={(e) => setCustom(e.target.value)} aria-label="Quantidade em ml" />
-        <button className="btn-icon !bg-sky-500 !text-white" disabled={busy} aria-label="Adicionar água">
+        <button type="submit" className="btn-icon !bg-sky-500 !text-white" disabled={busy} aria-label="Adicionar água">
           <Plus size={20} />
         </button>
       </form>

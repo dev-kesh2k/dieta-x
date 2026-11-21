@@ -195,7 +195,14 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+      role="presentation"
+      onClick={(e) => {
+        // Fecha só ao tocar no fundo, não dentro da janela.
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -205,7 +212,7 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
       >
         <div className="mb-4 flex items-center justify-between gap-2">
           <h2 className="min-w-0 truncate text-lg font-bold">{title}</h2>
-          <button className="btn-icon" onClick={onClose} aria-label="Fechar">
+          <button type="button" className="btn-icon" onClick={onClose} aria-label="Fechar">
             <X size={20} />
           </button>
         </div>

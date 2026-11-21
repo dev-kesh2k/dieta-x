@@ -73,7 +73,7 @@ export default function Login() {
             />
           </div>
           <ErrorBox message={error} />
-          <button className="btn-primary w-full" disabled={busy}>
+          <button type="submit" className="btn-primary w-full" disabled={busy}>
             {busy ? 'Aguarde…' : 'Entrar'}
           </button>
         </form>

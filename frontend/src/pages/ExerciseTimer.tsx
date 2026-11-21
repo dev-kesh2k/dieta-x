@@ -59,7 +59,7 @@ function useWakeLock(active: boolean) {
     if (!active || !('wakeLock' in navigator)) return;
     let lock: WakeLockSentinel | null = null;
     const get = () => navigator.wakeLock.request('screen').then((l) => (lock = l)).catch(() => {});
-    get();
+    void get();
     const onVis = () => document.visibilityState === 'visible' && get();
     document.addEventListener('visibilitychange', onVis);
     return () => {

@@ -86,7 +86,7 @@ function LookCard({ user }: { user: User }) {
           accept="image/*"
           className="hidden"
           onChange={(e) => {
-            pick(e.target.files?.[0]);
+            void pick(e.target.files?.[0]);
             e.target.value = '';
           }}
         />
@@ -105,7 +105,7 @@ function LookCard({ user }: { user: User }) {
                 aria-pressed={active}
                 onClick={() => {
                   applyTheme(t.id);
-                  save({ theme: t.id });
+                  void save({ theme: t.id });
                 }}
                 className={`relative flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2.5 text-xs font-semibold transition active:scale-95 ${
                   active ? 'border-brand bg-brand-light text-brand-dark' : 'border-line bg-tint text-soft'
@@ -326,7 +326,7 @@ function PersonalForm({ user }: { user: User }) {
       </div>
 
       <ErrorBox message={error} />
-      <button className="btn-primary w-full" disabled={busy}>
+      <button type="submit" className="btn-primary w-full" disabled={busy}>
         {saved ? <CheckCircle2 size={18} /> : null}
         {busy ? 'Salvando…' : saved ? 'Salvo' : 'Salvar informações'}
       </button>
@@ -367,7 +367,7 @@ function PasswordForm() {
       <input type="password" className="input" placeholder="Nova senha (mín. 8)" autoComplete="new-password" minLength={8} value={next} onChange={(e) => setNext(e.target.value)} required aria-label="Nova senha" />
       <ErrorBox message={error} />
       {msg && <p className="text-sm text-brand-dark">{msg}</p>}
-      <button className="btn-ghost w-full" disabled={busy}>{busy ? 'Salvando…' : 'Alterar senha'}</button>
+      <button type="submit" className="btn-ghost w-full" disabled={busy}>{busy ? 'Salvando…' : 'Alterar senha'}</button>
     </form>
   );
 }
